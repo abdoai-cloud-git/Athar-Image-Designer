@@ -1,240 +1,422 @@
-# Agency Swarm GitHub Template
+# Athar Image Designer Swarm
 
-A production-ready template for deploying [Agency Swarm](https://github.com/VRSEN/agency-swarm) agencies with Docker containerization and automated deployment to the [Agencii](https://agencii.ai/) cloud platform.
+A production-ready multi-agent system for generating high-quality cinematic Athar-style images using **Nano Banana Pro** via the **KIE API**.
 
-**🌐 [Agencii](https://agencii.ai/)** - The official cloud platform for Agency Swarm deployments  
-**🔗 [GitHub App](https://github.com/apps/agencii)** - Automated deployment integration
+## 🎨 Overview
 
----
+The Athar Image Designer Swarm is a sophisticated AI agent system that transforms user descriptions into stunning, cinematic images that embody Athar's distinctive aesthetic: minimalist compositions, contemplative themes, warm earth tones, and poetic atmosphere.
+
+### Key Features
+
+- ✨ **Athar-Optimized**: Specifically designed for Athar's cinematic, minimalist aesthetic
+- 🤖 **Multi-Agent Architecture**: 5 specialized agents working in seamless coordination
+- 🎯 **KIE API Integration**: Direct integration with Nano Banana Pro through KIE API
+- ☁️ **Cloud Storage**: Automatic upload to Google Drive with shareable URLs
+- ✅ **Quality Assurance**: Automated validation for aspect ratio, clarity, and quality
+- 🚀 **Production Ready**: Deploy directly to agencii.ai dashboard
+
+## 🏗️ Architecture
+
+```
+User Input
+    ↓
+Brief Agent → Extracts creative brief (theme, mood, palette)
+    ↓
+Art Direction Agent → Generates optimized Nano Banana prompt
+    ↓
+NB Image Agent → Generates image via KIE API
+    ↓
+QA Agent → Validates quality (retry if needed)
+    ↓
+Export Agent → Uploads to Google Drive
+    ↓
+Returns URLs and metadata to user
+```
+
+### Agents
+
+1. **Brief Agent** - Extracts creative elements from user input
+2. **Art Direction Agent** - Converts brief into optimized prompts
+3. **NB Image Agent** - Generates images via Nano Banana Pro (KIE API)
+4. **QA Agent** - Validates image quality and technical specs
+5. **Export Agent** - Uploads to Google Drive and returns URLs
 
 ## 🚀 Quick Start
 
-### 1. Use This Template
+### Prerequisites
 
-Click **"Use this template"** to create your own repository, or:
+- Python 3.11+
+- OpenAI API key
+- KIE API key (for Nano Banana Pro access)
+- Google Service Account with Drive API access
 
+### Installation
+
+1. **Clone the repository**
 ```bash
-git clone https://github.com/your-username/agency-github-template.git
-cd agency-github-template
+git clone <repository-url>
+cd athar-image-designer-swarm
 ```
 
-> **🌐 For Production**: Sign up at [agencii.ai](https://agencii.ai/) and use this template for automated cloud deployment
-
-### 2. Install Dependencies
-
+2. **Install dependencies**
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Set Up Environment Variables
+3. **Configure environment variables**
 
-Create a `.env` file in the root directory:
+Copy `.env.template` to `.env` and fill in your API keys:
 
 ```bash
-# Required
-OPENAI_API_KEY=your_openai_api_key_here
-
-# Optional - Add any additional API keys your agents need
-# EXAMPLE_API_KEY=your_api_key_here
+cp .env.template .env
+# Edit .env with your API keys
 ```
 
-### 4. Test the Example Agency
+Required environment variables:
+- `OPENAI_API_KEY` - Your OpenAI API key
+- `KIE_API_KEY` - Your KIE API key for Nano Banana Pro
+- `GOOGLE_SERVICE_ACCOUNT_JSON` - Google Service Account credentials (JSON)
+- `GDRIVE_FOLDER_ID` - Google Drive folder ID for uploads
+
+### Running Locally
 
 ```bash
 python agency.py
 ```
 
-This runs the example agency in terminal mode for testing.
+This launches the agency in terminal mode where you can test image generation.
 
-> **💡 Pro Tip**: For creating your own agency, open this template in [Cursor IDE](https://cursor.sh/) and use the AI assistant with the `.cursor/rules/workflow.mdc` file for automated agency creation!
-
----
-
-## 🏗️ Project Structure
+### Example Usage
 
 ```
-agency-github-template/
-├── agency.py                 # Main entry point
-├── requirements.txt          # Python dependencies
-├── Dockerfile               # Container configuration
-├── .env                     # Environment variables (create this)
-├── example_agent/           # Your agency folder
-    ├── __init__.py
-    ├── example_agent.py
-    ├── instructions.md
-    ├── files/               # Local files accessible to the agent (via files_folder)
-    └── tools/
-        └── ExampleTool.py
-├── example_agent2/
-├── agency_manifesto.md  # Shared instructions
-├── requirements.txt
-├── .env
-└──...
+User: Create an image of solitude in the desert at sunset. 
+      A lone figure contemplates the vast expanse, bathed in golden light. 
+      Mood: peaceful and meditative, warm earth tones.
+
+Agency:
+  ↓ Brief Agent extracts: theme=solitude, mood=serene, palette=warm earth tones
+  ↓ Art Direction Agent creates optimized prompt
+  ↓ NB Image Agent generates via KIE API
+  ↓ QA Agent validates quality → PASS
+  ↓ Export Agent uploads to Google Drive
+  
+Returns:
+  - Image URL (KIE)
+  - Google Drive View URL
+  - Google Drive Download URL
+  - Generation seed (for reproducibility)
+  - Complete metadata
 ```
 
----
+## 🔧 Setup Instructions
 
-## 🔧 Creating Your Own Agency
+### 1. OpenAI API Key
 
-### 🤖 **AI-Assisted Agency Creation with Cursor**
+1. Visit https://platform.openai.com/api-keys
+2. Create new secret key
+3. Add to `.env` as `OPENAI_API_KEY`
 
-This template includes **AI-powered agency creation** using Cursor IDE:
+### 2. KIE API Key
 
-1. **Open this project in Cursor IDE**
+1. Visit https://kie.ai
+2. Sign up or log in
+3. Navigate to API settings
+4. Generate new API key
+5. Add to `.env` as `KIE_API_KEY`
 
-2. **Use the AI Assistant** to create your agency by referencing:
-   ```
-   📁 .cursor/rules/workflow.mdc
-   ```
-3. **Simply ask the AI:**
+### 3. Google Service Account
 
-   > "Create a new agency using the .cursor workflow"
+1. Go to https://console.cloud.google.com/
+2. Create or select a project
+3. Enable Google Drive API
+4. Create Service Account:
+   - IAM & Admin → Service Accounts → Create Service Account
+   - Name it (e.g., "athar-image-uploader")
+   - Grant role: "Service Account User"
+5. Create Key:
+   - Click on service account
+   - Keys → Add Key → Create New Key → JSON
+   - Download JSON file
+   - Copy entire JSON content to `.env` as single-line string
 
-   The AI will guide you through the complete 7-step process:
+### 4. Google Drive Folder
 
-   - ✅ PRD Creation
-   - ✅ Folder Structure Setup
-   - ✅ Tool Development
-   - ✅ Agent Creation
-   - ✅ Agency Configuration
-   - ✅ Testing & Validation
-   - ✅ Iteration & Refinement
+1. Open Google Drive
+2. Create new folder (e.g., "Athar Generated Images")
+3. Right-click → Share
+4. Add your service account email (from JSON: `client_email`)
+5. Give **Editor** permissions
+6. Copy folder ID from URL: `https://drive.google.com/drive/folders/[FOLDER_ID]`
+7. Add to `.env` as `GDRIVE_FOLDER_ID`
 
-### 📋 **What the AI Will Do For You**
+## 📁 Project Structure
 
-The AI assistant will automatically:
+```
+athar-image-designer-swarm/
+├── brief_agent/
+│   ├── brief_agent.py
+│   ├── instructions.md
+│   └── tools/
+│       └── ExtractBriefTool.py
+├── art_direction_agent/
+│   ├── art_direction_agent.py
+│   ├── instructions.md
+│   └── tools/
+│       └── GeneratePromptTool.py
+├── nb_image_agent/
+│   ├── nb_image_agent.py
+│   ├── instructions.md
+│   └── tools/
+│       └── KieNanoBananaTool.py
+├── qa_agent/
+│   ├── qa_agent.py
+│   ├── instructions.md
+│   └── tools/
+│       └── ValidateImageTool.py
+├── export_agent/
+│   ├── export_agent.py
+│   ├── instructions.md
+│   └── tools/
+│       └── GDriveUploadTool.py
+├── agency.py                    # Main agency orchestration
+├── shared_instructions.md       # Shared context for all agents
+├── agencii.json                 # Deployment configuration
+├── deployment.sh                # Deployment script
+├── requirements.txt             # Python dependencies
+├── .env.template                # Environment variable template
+└── README.md                    # This file
+```
 
-- Create proper folder structures
-- Generate agent classes and instructions
-- Build custom tools with full functionality
-- Set up communication flows
-- Create the main agency file
-- Test everything to ensure it works
+## 🌐 Deployment to agencii.ai
 
-### 🚀 **Manual Alternative (Advanced Users)**
+### Automated Deployment
 
-If you prefer manual setup, replace the `ExampleAgency/` folder with your own agency structure following the Agency Swarm conventions.
+1. **Push to GitHub**
+```bash
+git add .
+git commit -m "Initial Athar Image Designer Swarm setup"
+git push origin main
+```
 
-### Agency Structure Requirements
+2. **Connect to agencii.ai**
+   - Sign up at https://agencii.ai
+   - Install the [Agencii GitHub App](https://github.com/apps/agencii)
+   - Grant permissions to your repository
 
-Your agency must follow this structure:
+3. **Configure Environment Variables**
+   - Go to agencii.ai dashboard
+   - Add all required environment variables:
+     - `OPENAI_API_KEY`
+     - `KIE_API_KEY`
+     - `GOOGLE_SERVICE_ACCOUNT_JSON`
+     - `GDRIVE_FOLDER_ID`
 
-- **Agency Folder**: Contains all agents and manifesto
-- **Agent Folders**: Each agent has its own folder with:
-  - `AgentName.py` - Agent class definition
-  - `instructions.md` - Agent-specific instructions
-  - `tools/` - Folder containing agent tools
-- **agency_manifesto.md** - Shared instructions for all agents
+4. **Deploy**
+   - Agencii automatically deploys on push to `main` branch
+   - Monitor deployment in dashboard
+   - Access your live agency via provided endpoints
 
----
+### Manual Deployment
 
-## 🚀 Production Deployment with Agencii
+```bash
+./deployment.sh
+```
 
-### **🌐 Deploy to Agencii Cloud Platform**
+The deployment script will:
+- Verify environment configuration
+- Install dependencies
+- Validate agency structure
+- Test imports
+- Provide deployment options
 
-For production deployment, use the [Agencii](https://agencii.ai/) platform:
+## 🔍 Testing
 
-#### **Step 1: Create Account & Use Template**
+### Test Individual Tools
 
-1. **Sign up** at [agencii.ai](https://agencii.ai/)
-2. **Use this template** to create your repository
-3. **Develop your agency** using Cursor IDE with `.cursor` workflow
+```bash
+# Test Brief Extraction
+python brief_agent/tools/ExtractBriefTool.py
 
-#### **Step 2: Install GitHub App**
+# Test Prompt Generation
+python art_direction_agent/tools/GeneratePromptTool.py
 
-1. **Install** the [Agencii GitHub App](https://github.com/apps/agencii)
-2. **Grant permissions** to your repository
-3. **Configure** environment variables in Agencii dashboard
+# Test Image Generation (requires KIE_API_KEY)
+python nb_image_agent/tools/KieNanoBananaTool.py
 
-#### **Step 3: Deploy**
+# Test Image Validation (requires image URL)
+python qa_agent/tools/ValidateImageTool.py
 
-1. **Push to main branch** - Agencii automatically detects and deploys
-2. **Monitor deployment** in your Agencii dashboard
-3. **Access your live agency** via provided endpoints
+# Test Google Drive Upload (requires all credentials)
+python export_agent/tools/GDriveUploadTool.py
+```
 
-### **🔄 Automatic Deployments**
+### Test Complete Agency
 
-- **Auto-deploy** on every push to `main` branch
-- **Zero-downtime** deployments with rollback capability
-- **Environment management** through Agencii dashboard
+```bash
+python agency.py
+```
 
----
+Then enter a test prompt like:
+```
+Create an image of a lone traveler in the desert at golden hour
+```
 
-## 🔨 Development Workflow
+## 📊 Workflow Details
 
-### **🎯 Recommended: AI-Assisted Development**
+### Sequential Pipeline
 
-1. **Open Cursor IDE** with this template
-2. **Ask the AI**: _"Create a new agency using the .cursor workflow"_
-3. **Follow the guided process** - the AI handles everything automatically
-4. **Test your agency**: `python agency.py`
-5. **Deploy to production**: Install [Agencii GitHub App](https://github.com/apps/agencii) and push to main
+1. **Brief Agent** receives user input
+   - Extracts theme, mood, tone, palette, visual elements, keywords
+   - Outputs structured JSON brief
 
-### **⚙️ Manual Development (Advanced)**
+2. **Art Direction Agent** receives brief
+   - Applies Athar prompt template
+   - Generates main prompt and negative prompt
+   - Adds technical parameters (aspect ratio, style)
 
-If you prefer hands-on development:
+3. **NB Image Agent** receives prompt
+   - Creates task via KIE API: `POST /playground/createTask`
+   - Polls status via: `GET /playground/recordInfo?taskId=xxx`
+   - Waits for "completed" status
+   - Returns image URL(s) and metadata
 
-1. **Create Tools**: Build agent tools in `tools/` folders
-2. **Configure Agents**: Write `instructions.md` and agent classes
-3. **Test Locally**: Run `python agency.py`
-4. **Deploy**: Push to your preferred platform
+4. **QA Agent** receives image URL
+   - Downloads and validates image
+   - Checks: aspect ratio, resolution, quality, exposure, color
+   - Decides: PASS / PASS_WITH_WARNINGS / RETRY
 
-The `.cursor/rules/workflow.mdc` file contains the complete development specifications for manual implementation.
+5. **Export Agent** receives validated image (if PASS)
+   - Downloads from KIE URL
+   - Uploads to Google Drive
+   - Makes publicly accessible
+   - Returns view and download URLs
 
----
+### Retry Logic
 
-## 📚 Key Features
+If QA Agent returns RETRY:
+- Image is rejected with specific issues noted
+- Request loops back to NB Image Agent
+- Agent can adjust parameters and regenerate
+- Max retries: 2 (configurable in `agencii.json`)
 
-- **🌐 Agencii Cloud Deploy**: One-click deployment to [Agencii platform](https://agencii.ai/)
-- **🤖 AI-Assisted Creation**: Built-in Cursor IDE workflow for automated agency development
-- **🔄 Auto-Deploy**: Automatic deployment on push to main branch
-- **🚀 Ready-to-Deploy**: Dockerfile and requirements included
-- **🔧 Modular Structure**: Easy to customize and extend
-- **🛠️ Example Implementation**: Complete working example
-- **📦 Container Ready**: Docker configuration for any platform
-- **🔒 Environment Management**: Secure API key handling via Agencii dashboard
-- **🧪 Local Testing**: Terminal demo for development
-- **📋 Guided Workflow**: 7-step process with AI assistance
+## 🎨 Athar Style Guidelines
 
----
+### Visual Characteristics
 
-## 📖 Learn More
+- **Composition**: Rule of thirds, generous negative space, single focal point
+- **Lighting**: Soft, directional, warm golden hour or blue hour
+- **Texture**: Paper grain, subtle film grain, organic textures
+- **Color**: Warm earth tones, muted pastels, controlled saturation
+- **Mood**: Calm, contemplative, meditative, introspective, poetic
 
-- **[Agency Swarm Documentation](https://agency-swarm.ai/)**
-- **[Agency Swarm GitHub](https://github.com/VRSEN/agency-swarm)**
+### Common Themes
 
----
+- Solitude and contemplation
+- Journey and exploration  
+- Spirituality and transcendence
+- Memory and nostalgia
+- Silence and stillness
+- Nature and landscape
+
+### What to Avoid
+
+- Harsh lighting
+- Oversaturation
+- Busy compositions
+- Multiple focal points
+- Chaotic textures
+- Distorted text
+
+## 🔧 Configuration
+
+### agencii.json
+
+Deployment configuration for agencii.ai platform:
+- Agent definitions and roles
+- Workflow type (sequential_pipeline)
+- Environment variable requirements
+- Scaling settings
+- Health checks
+- Performance expectations
+
+### shared_instructions.md
+
+Shared context for all agents:
+- Athar brand background
+- Style guidelines
+- Quality standards
+- Technical specifications
+- Workflow coordination
+
+## 📈 Performance Metrics
+
+- **Expected Completion Time**: 2-5 minutes
+- **Generation Success Rate**: >95%
+- **QA Pass Rate**: >80% on first attempt
+- **Upload Success Rate**: >99%
+- **Timeout Threshold**: 10 minutes
+
+## 🛠️ Troubleshooting
+
+### Common Issues
+
+**Import Error: `ModuleNotFoundError`**
+```bash
+pip install -r requirements.txt
+```
+
+**KIE API Error: `Unauthorized`**
+- Check `KIE_API_KEY` is set correctly in `.env`
+- Verify API key is active at https://kie.ai
+
+**Google Drive Error: `Insufficient permissions`**
+- Verify service account email has Editor access to folder
+- Check `GOOGLE_SERVICE_ACCOUNT_JSON` is valid JSON
+- Ensure Drive API is enabled in Google Cloud Console
+
+**Image Generation Timeout**
+- Default timeout: 60 polling attempts × 5 seconds = 5 minutes
+- Check KIE API status
+- Verify image generation is not stuck in "processing"
+
+### Debug Mode
+
+For verbose logging:
+```bash
+export LOG_LEVEL=DEBUG
+python agency.py
+```
+
+## 📚 Documentation
+
+- [Agency Swarm Documentation](https://agency-swarm.ai)
+- [KIE API Documentation](https://kie.ai/docs)
+- [Google Drive API Guide](https://developers.google.com/drive/api/guides/about-sdk)
+- [Agencii Platform](https://agencii.ai)
 
 ## 🤝 Contributing
+
+Contributions are welcome! Please:
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Submit a pull request
+4. Add tests if applicable
+5. Submit a pull request
+
+## 📄 License
+
+MIT License - see LICENSE file for details
+
+## 🙏 Acknowledgments
+
+- **Agency Swarm** - Multi-agent orchestration framework
+- **KIE AI** - Nano Banana Pro API access
+- **OpenAI** - GPT-5.1 model for agent reasoning
+- **Athar** - Inspiration for aesthetic guidelines
 
 ---
 
-## ⚡ Quick Tips
+**Ready to generate stunning Athar-style images?** 🎨✨
 
-- **Start Small**: Begin with 1-2 agents and expand
-- **Test Tools**: Each tool should work independently
-- **Clear Instructions**: Write detailed agent instructions
-- **Environment Setup**: Always use `.env` for API keys
-- **Documentation**: Update instructions as you develop
-
----
-
-**Ready to build your AI agency?** 🤖✨
-
-### 🌐 **Production Route (Recommended)**
-
-1. **Sign up** at [agencii.ai](https://agencii.ai/)
-2. **Use this template** to create your repository
-3. **Install** [Agencii GitHub App](https://github.com/apps/agencii)
-4. **Push to main** → Automatic deployment!
-
-### 🛠️ **Development Route**
-
-Open this template in **Cursor IDE** and ask the AI to create your agency using the `.cursor` workflow. The AI will handle everything from setup to testing automatically!
-
-For manual development, replace the `ExampleAgency` with your own implementation and start deploying intelligent agent systems!
+For support or questions, please open an issue or visit our documentation.
