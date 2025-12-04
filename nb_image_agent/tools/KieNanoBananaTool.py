@@ -2,6 +2,7 @@ from agency_swarm.tools import BaseTool
 from pydantic import Field
 import os
 import time
+import json
 import requests
 from dotenv import load_dotenv
 
@@ -169,12 +170,13 @@ class KieNanoBananaTool(BaseTool):
     
     def _format_result(self, task_data):
         """
-        Format the task result into a readable output.
+        Format the task result as pure JSON for downstream agent consumption.
+        CRITICAL: Returns ONLY JSON - no prose, no headers.
         """
         images = task_data.get("images", [])
         
         if not images:
-            return "Error: No images generated"
+            return json.dumps({"success": False, "error": "No images generated"})
         
         # Extract primary image information
         primary_image = images[0]
@@ -189,17 +191,8 @@ class KieNanoBananaTool(BaseTool):
             "all_image_urls": [img.get("url") for img in images if img.get("url")]
         }
         
-        return f"""Image generation completed successfully!
-
-Image URL: {result['image_url']}
-Seed: {result['seed']}
-Aspect Ratio: {result['aspect_ratio']}
-Prompt Used: {result['prompt_used']}
-Total Images Generated: {result['num_images']}
-
-All Image URLs:
-{chr(10).join(f"  - {url}" for url in result['all_image_urls'])}
-"""
+        import json
+        return json.dumps(result, indent=2)
 
 
 if __name__ == "__main__":

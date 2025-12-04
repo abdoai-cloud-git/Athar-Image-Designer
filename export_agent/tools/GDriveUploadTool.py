@@ -201,25 +201,19 @@ class GDriveUploadTool(BaseTool):
     
     def _format_result(self, file_info):
         """
-        Format the upload result into a readable output.
+        Format the upload result as pure JSON for downstream agent consumption.
+        CRITICAL: Returns ONLY JSON - no prose, no headers.
         """
         result = {
             "success": True,
             "file_id": file_info.get('id', ''),
             "filename": file_info.get('name', self.filename),
             "gdrive_view_url": file_info.get('webViewLink', f"https://drive.google.com/file/d/{file_info.get('id')}/view"),
-            "gdrive_download_url": file_info.get('webContentLink', f"https://drive.google.com/uc?id={file_info.get('id')}&export=download")
+            "gdrive_download_url": file_info.get('webContentLink', f"https://drive.google.com/uc?id={file_info.get('id')}&export=download"),
+            "gdrive_url": file_info.get('webViewLink', f"https://drive.google.com/file/d/{file_info.get('id')}/view")
         }
         
-        return f"""Image uploaded to Google Drive successfully!
-
-File ID: {result['file_id']}
-Filename: {result['filename']}
-View URL: {result['gdrive_view_url']}
-Download URL: {result['gdrive_download_url']}
-
-The file is now accessible via Google Drive.
-"""
+        return json.dumps(result, indent=2)
 
 
 if __name__ == "__main__":
