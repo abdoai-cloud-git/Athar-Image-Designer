@@ -1,0 +1,31 @@
+{
+  "version": "1.0.0",
+  "agency": {
+    "name": "athar_image_designer_swarm",
+    "entrypoint": "agency.create_agency",
+    "shared_instructions": "shared_instructions.md"
+  },
+  "workflows": [
+    {
+      "name": "generate_athar_image",
+      "path": "athar_image_designer/workflows/generate_athar_image.yaml",
+      "entry_agent": "brief_agent",
+      "output_schema": "athar_image_designer/config/schemas/workflow_output_schema.json"
+    }
+  ],
+  "environment": [
+    "OPENAI_API_KEY",
+    "KIE_API_KEY",
+    "KIE_API_BASE",
+    "GOOGLE_SERVICE_ACCOUNT_JSON",
+    "GDRIVE_FOLDER_ID"
+  ],
+  "logging": {
+    "level": "INFO",
+    "tracing": true
+  },
+  "deployment": {
+    "cli": "agencii",
+    "command": "agencii deploy --config athar_image_designer/agencii.json --workflow generate_athar_image"
+  }
+}

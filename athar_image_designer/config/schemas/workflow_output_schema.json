@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AtharWorkflowOutput",
+  "type": "object",
+  "required": [
+    "theme",
+    "prompt_used",
+    "image_url",
+    "gdrive_url",
+    "gdrive_download_url",
+    "seed",
+    "aspect_ratio"
+  ],
+  "properties": {
+    "theme": { "type": "string" },
+    "prompt_used": { "type": "string" },
+    "image_url": { "type": "string", "format": "uri" },
+    "gdrive_url": { "type": "string", "format": "uri" },
+    "gdrive_download_url": { "type": "string", "format": "uri" },
+    "filename": { "type": "string" },
+    "seed": { "type": "string" },
+    "aspect_ratio": { "type": "string" },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    }
+  },
+  "additionalProperties": false
+}

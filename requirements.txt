@@ -1,3 +1,9 @@
 agency-swarm[fastapi]>=1.2.1
 fastapi
 uvicorn
+google-api-python-client>=2.152.0
+google-auth>=2.35.0
+google-auth-httplib2>=0.2.0
+google-auth-oauthlib>=1.2.1
+Pillow>=11.0.0
+numpy>=2.1.3
