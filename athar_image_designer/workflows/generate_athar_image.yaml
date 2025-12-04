@@ -1,0 +1,28 @@
+version: "1.0"
+workflow: "generate_athar_image"
+description: "Convert Athar briefs into validated Nano Banana renders via KIE and export to Google Drive."
+entry_agent: "BriefAgent"
+logging: true
+tracing: true
+steps:
+  - name: "ingest_brief"
+    agent: "BriefAgent"
+    summary: "Parse user intent into structured JSON (theme, mood, palette, keywords, Arabic copy)."
+    output_schema: "../config/schemas/brief_schema.json"
+  - name: "art_direction"
+    agent: "ArtDirectionAgent"
+    summary: "Map the brief to the Athar Nano Banana template and produce prompt + controls."
+    output_schema: "../config/schemas/art_direction_schema.json"
+  - name: "generate_render"
+    agent: "NanoBananaAgent"
+    summary: "Submit the prompt through KIE Nano Banana wrapper and wait for completion."
+  - name: "quality_gate"
+    agent: "QAAuditAgent"
+    summary: "Validate aspect ratio, clarity, and Arabic legibility before release."
+  - name: "export_delivery"
+    agent: "ExportAgent"
+    summary: "Upload approved artwork to Drive and emit final contract JSON."
+final_output_schema: "../config/schemas/final_output_schema.json"
+retry_policy:
+  max_attempts: 2
+  backoff_seconds: 10

@@ -1,0 +1,13 @@
+A cinematic minimalistic artwork inspired by Athar.
+Theme: {{theme}}
+Mood: {{mood}}
+Palette: {{palette}}
+Visual Metaphor: {{element}}
+Composition:
+  Soft foreground subject with gentle depth.
+  Background atmospheric texture with paper grain and cinematic lighting.
+Tone: poetic, calm, meditative.
+Avoid: messy textures, chaotic shapes, distorted Arabic text.
+--ar {{aspect_ratio}}
+--style cinematic-premium
+--negative {{negative_prompt}}

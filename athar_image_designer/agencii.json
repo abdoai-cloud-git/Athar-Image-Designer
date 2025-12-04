@@ -1,0 +1,24 @@
+{
+  "name": "athar_image_designer_swarm",
+  "entrypoint": "agency:create_agency",
+  "workflows": [
+    {
+      "id": "generate_athar_image",
+      "description": "Brief → art direction → KIE Nano Banana → QA → Drive export pipeline",
+      "config": "athar_image_designer/workflows/generate_athar_image.yaml",
+      "output_schema": "athar_image_designer/config/schemas/final_output_schema.json",
+      "agents": [
+        "BriefAgent",
+        "ArtDirectionAgent",
+        "NanoBananaAgent",
+        "QAAuditAgent",
+        "ExportAgent"
+      ],
+      "logging": true,
+      "tracing": true
+    }
+  ],
+  "environment": {
+    "env_file": ".env"
+  }
+}

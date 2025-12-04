@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Athar Art Direction",
+  "type": "object",
+  "required": ["prompt", "negative_prompt", "aspect_ratio", "style", "palette"],
+  "properties": {
+    "prompt": {"type": "string", "description": "Full Nano Banana prompt string."},
+    "negative_prompt": {"type": "string", "description": "What Nano Banana should avoid."},
+    "aspect_ratio": {"type": "string", "pattern": "^\\d+:\\d+$"},
+    "style": {"type": "string"},
+    "palette": {"type": "string"},
+    "mood": {"type": "string"},
+    "keywords": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "notes": {"type": "string"}
+  }
+}

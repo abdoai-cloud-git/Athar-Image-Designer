@@ -1,0 +1,29 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Athar Brief",
+  "type": "object",
+  "required": ["theme", "mood", "palette", "keywords", "arabic_text"],
+  "properties": {
+    "theme": {"type": "string", "description": "Central idea or story to illustrate."},
+    "mood": {"type": "string", "description": "Tone or emotional direction (calm, contemplative, etc.)."},
+    "palette": {"type": "string", "description": "Recommended color palette referencing Athar hues."},
+    "keywords": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Visual keywords and textures to include"
+    },
+    "arabic_text": {"type": "string", "description": "Exact Arabic copy or calligraphic cue."},
+    "visual_metaphor": {"type": "string", "description": "Core symbol or metaphor to highlight."},
+    "aspect_ratio": {"type": "string", "pattern": "^\\d+:\\d+$", "description": "Preferred aspect ratio."},
+    "negative_keywords": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Elements to avoid"
+    },
+    "references": {
+      "type": "array",
+      "items": {"type": "string", "format": "uri"},
+      "description": "Optional inspirational URLs"
+    }
+  }
+}
