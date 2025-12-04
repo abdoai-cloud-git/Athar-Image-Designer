@@ -1,11 +1,11 @@
 # only listed properties are used by the system
 
 [project]
-name = "my-agency"
-description = "My awesome agency"
-version = "0.0.1"
+name = "athar-image-designer-swarm"
+description = "Generate high-quality cinematic Athar-style images using Nano Banana Pro via KIE API"
+version = "1.0.0"
 license = { text = "MIT" }
-keywords = ["agency-swarm", "agencii"]
+keywords = ["agency-swarm", "agencii", "image-generation", "athar", "cinematic", "nano-banana"]
 
 [tool.template]
 version = "0.0.2"

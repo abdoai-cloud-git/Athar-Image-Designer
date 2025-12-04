@@ -1,14 +1,15 @@
 from agents import ModelSettings
-from agency_swarm import Agent
 from openai.types.shared import Reasoning
+from agency_swarm import Agent
 
-example_agent2 = Agent(
-    name="ExampleAgent2",
-    description="A helpful and knowledgeable assistant that provides comprehensive support and guidance across various domains.",
+
+art_direction_agent = Agent(
+    name="ArtDirectionAgent",
+    description="Converts creative briefs into complete Nano Banana prompts with style parameters, aspect ratios, and negative prompts.",
     instructions="./instructions.md",
     tools_folder="./tools",
     files_folder="./files",
-    model="gpt-5",
+    model="gpt-5.1",
     model_settings=ModelSettings(
         max_tokens=25000,
         reasoning=Reasoning(
@@ -17,4 +18,3 @@ example_agent2 = Agent(
         ),
     ),
 )
-

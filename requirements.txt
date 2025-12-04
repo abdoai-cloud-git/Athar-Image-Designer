@@ -1,3 +1,8 @@
 agency-swarm[fastapi]>=1.2.1
 fastapi
 uvicorn
+requests>=2.31.0
+Pillow>=10.0.0
+numpy>=1.24.0
+PyJWT>=2.8.0
+python-dotenv>=1.0.0

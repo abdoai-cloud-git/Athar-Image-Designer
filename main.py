@@ -16,8 +16,9 @@ if __name__ == "__main__":
     run_fastapi(
         agencies={
             # you must export your create agency function here
-            "my-agency": create_agency,
+            "athar-image-designer-swarm": create_agency,
         },
         port=8080,
-        enable_logging=True
+        enable_logging=True,
+        enable_tracing=True
     )
