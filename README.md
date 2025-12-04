@@ -7,6 +7,20 @@ A production-ready template for deploying [Agency Swarm](https://github.com/VRSE
 
 ---
 
+## ATHAR_IMAGE_DESIGNER_SWARM
+
+This repository now ships the **Athar Image Designer Swarm**, a five-agent production pipeline that:
+
+- Parses creative briefs into structured JSON (`brief_agent`)
+- Translates briefs into Nano Banana Pro prompts (`art_direction_agent`)
+- Calls the KIE Playground API to render Athar visuals (`nb_image_agent`)
+- Performs automated QA for aspect ratio, clarity, and Arabic legibility (`qa_agent`)
+- Publishes approved frames to Google Drive with shareable links (`export_agent`)
+
+The entire workflow is registered in `athar_image_designer/workflows/generate_athar_image.yaml` and deploys to agencii.ai using `athar_image_designer/agencii.json`.
+
+---
+
 ## 🚀 Quick Start
 
 ### 1. Use This Template
@@ -38,13 +52,13 @@ OPENAI_API_KEY=your_openai_api_key_here
 # EXAMPLE_API_KEY=your_api_key_here
 ```
 
-### 4. Test the Example Agency
+### 4. Test the Athar Image Designer Swarm
 
 ```bash
 python agency.py
 ```
 
-This runs the example agency in terminal mode for testing.
+This runs the Athar Image Designer Swarm in terminal mode for testing.
 
 > **💡 Pro Tip**: For creating your own agency, open this template in [Cursor IDE](https://cursor.sh/) and use the AI assistant with the `.cursor/rules/workflow.mdc` file for automated agency creation!
 
@@ -58,18 +72,17 @@ agency-github-template/
 ├── requirements.txt          # Python dependencies
 ├── Dockerfile               # Container configuration
 ├── .env                     # Environment variables (create this)
-├── example_agent/           # Your agency folder
-    ├── __init__.py
-    ├── example_agent.py
-    ├── instructions.md
-    ├── files/               # Local files accessible to the agent (via files_folder)
-    └── tools/
-        └── ExampleTool.py
-├── example_agent2/
-├── agency_manifesto.md  # Shared instructions
+├── athar_image_designer/
+│   ├── agents/              # brief, art_direction, nb_image, qa, export agents
+│   ├── tools/               # kie_nano_banana, validation, gdrive_upload
+│   ├── workflows/           # generate_athar_image.yaml
+│   ├── config/              # prompts + JSON schemas
+│   ├── agencii.json         # deployment descriptor for agencii.ai
+│   └── deployment.sh        # helper script for CLI deployments
+├── shared_instructions.md   # Agency-wide background guidance
 ├── requirements.txt
 ├── .env
-└──...
+└── ...
 ```
 
 ---

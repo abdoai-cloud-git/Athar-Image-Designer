@@ -1,0 +1,43 @@
+version: 1.0
+name: generate_athar_image
+description: >-
+  Sequential workflow that converts an Athar creative brief into a vetted
+  Nano Banana render and archives it to Google Drive.
+entry_agent: brief_agent
+steps:
+  - id: collect_brief
+    agent: brief_agent
+    input: user_prompt
+    output: brief_payload
+    schema: ../config/schemas/brief_schema.json
+
+  - id: craft_prompt
+    agent: art_direction_agent
+    input: brief_payload
+    output: nano_banana_prompt
+    metadata:
+      template: ../config/prompts/art_direction_template.md
+
+  - id: render_image
+    agent: nb_image_agent
+    input: nano_banana_prompt
+    output: render_metadata
+    tooling: KieNanoBananaTool
+
+  - id: quality_gate
+    agent: qa_agent
+    input: render_metadata
+    output: qa_report
+    tooling: ValidationTool
+
+  - id: export_asset
+    agent: export_agent
+    input: qa_report
+    output: final_delivery
+    tooling: GDriveUploadTool
+    schema: ../config/schemas/workflow_output_schema.json
+
+final_output:
+  ref: final_delivery
+  schema: ../config/schemas/workflow_output_schema.json
+  description: JSON payload returned to agencii callers with Athar asset metadata.
