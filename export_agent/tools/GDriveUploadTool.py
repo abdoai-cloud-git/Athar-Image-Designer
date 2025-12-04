@@ -45,23 +45,23 @@ class GDriveUploadTool(BaseTool):
         
         # Step 1: Validate environment variables
         if not GOOGLE_SERVICE_ACCOUNT_JSON:
-            return "Error: GOOGLE_SERVICE_ACCOUNT_JSON not found in environment variables. Please add the service account JSON to your .env file."
+            return json.dumps({"success": False, "error": "GOOGLE_SERVICE_ACCOUNT_JSON not found in environment variables"})
         
         target_folder_id = self.folder_id or GDRIVE_FOLDER_ID
         if not target_folder_id:
-            return "Error: No folder_id provided and GDRIVE_FOLDER_ID not found in environment variables."
+            return json.dumps({"success": False, "error": "No folder_id provided and GDRIVE_FOLDER_ID not found in environment variables"})
         
         # Step 2: Download the image
         image_bytes = self._download_image()
         if not image_bytes:
-            return "Error: Failed to download image from URL"
+            return json.dumps({"success": False, "error": "Failed to download image from URL"})
         
         print(f"Image downloaded successfully. Size: {len(image_bytes)} bytes")
         
         # Step 3: Upload to Google Drive
         file_info = self._upload_to_gdrive(image_bytes, target_folder_id)
         if not file_info:
-            return "Error: Failed to upload image to Google Drive"
+            return json.dumps({"success": False, "error": "Failed to upload image to Google Drive"})
         
         # Step 4: Make file publicly accessible
         if not self._make_public(file_info['id']):
@@ -202,6 +202,7 @@ class GDriveUploadTool(BaseTool):
     def _format_result(self, file_info):
         """
         Format the upload result into a readable output.
+        Returns ONLY JSON - no formatted text or prose.
         """
         result = {
             "success": True,
@@ -211,15 +212,7 @@ class GDriveUploadTool(BaseTool):
             "gdrive_download_url": file_info.get('webContentLink', f"https://drive.google.com/uc?id={file_info.get('id')}&export=download")
         }
         
-        return f"""Image uploaded to Google Drive successfully!
-
-File ID: {result['file_id']}
-Filename: {result['filename']}
-View URL: {result['gdrive_view_url']}
-Download URL: {result['gdrive_download_url']}
-
-The file is now accessible via Google Drive.
-"""
+        return json.dumps(result, indent=2)
 
 
 if __name__ == "__main__":

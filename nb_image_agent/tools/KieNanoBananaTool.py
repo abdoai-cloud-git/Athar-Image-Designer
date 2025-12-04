@@ -3,6 +3,7 @@ from pydantic import Field
 import os
 import time
 import requests
+import json
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -55,19 +56,19 @@ class KieNanoBananaTool(BaseTool):
         """
         
         if not KIE_API_KEY:
-            return "Error: KIE_API_KEY not found in environment variables. Please add it to your .env file."
+            return json.dumps({"success": False, "error": "KIE_API_KEY not found in environment variables"})
         
         # Step 1: Create the image generation task
         task_id = self._create_task()
         if not task_id:
-            return "Error: Failed to create image generation task"
+            return json.dumps({"success": False, "error": "Failed to create image generation task"})
         
         print(f"Task created successfully. Task ID: {task_id}")
         
         # Step 2: Poll for task completion
         result = self._poll_task(task_id)
         if not result:
-            return f"Error: Task {task_id} failed or timed out"
+            return json.dumps({"success": False, "error": f"Task {task_id} failed or timed out"})
         
         # Step 3: Extract and return image information
         return self._format_result(result)
@@ -170,11 +171,12 @@ class KieNanoBananaTool(BaseTool):
     def _format_result(self, task_data):
         """
         Format the task result into a readable output.
+        Returns ONLY JSON - no formatted text or prose.
         """
         images = task_data.get("images", [])
         
         if not images:
-            return "Error: No images generated"
+            return json.dumps({"success": False, "error": "No images generated"})
         
         # Extract primary image information
         primary_image = images[0]
@@ -189,17 +191,7 @@ class KieNanoBananaTool(BaseTool):
             "all_image_urls": [img.get("url") for img in images if img.get("url")]
         }
         
-        return f"""Image generation completed successfully!
-
-Image URL: {result['image_url']}
-Seed: {result['seed']}
-Aspect Ratio: {result['aspect_ratio']}
-Prompt Used: {result['prompt_used']}
-Total Images Generated: {result['num_images']}
-
-All Image URLs:
-{chr(10).join(f"  - {url}" for url in result['all_image_urls'])}
-"""
+        return json.dumps(result, indent=2)
 
 
 if __name__ == "__main__":

@@ -167,27 +167,9 @@ class GeneratePromptTool(BaseTool):
     def _format_output(self, output):
         """
         Format the output in a clear, structured format.
+        Returns ONLY JSON - no formatted text or prose.
         """
-        formatted = f"""
-=== ART DIRECTION PROMPT ===
-
-MAIN PROMPT:
-{output['prompt']}
-
-NEGATIVE PROMPT:
-{output['negative_prompt']}
-
-PARAMETERS:
-- Aspect Ratio: {output['aspect_ratio']}
-- Style: {output['style']}
-- Quality: {output['quality']}
-
-=== COMPLETE OUTPUT JSON ===
-{json.dumps(output, indent=2)}
-
-The prompt is ready for image generation via Nano Banana Pro through KIE API.
-"""
-        return formatted.strip()
+        return json.dumps(output, indent=2)
 
 
 if __name__ == "__main__":
