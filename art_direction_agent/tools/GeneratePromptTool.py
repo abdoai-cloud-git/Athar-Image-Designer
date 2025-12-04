@@ -67,8 +67,16 @@ class GeneratePromptTool(BaseTool):
             "palette": self.palette
         }
         
-        # Step 4: Format for output
-        return self._format_output(output)
+        # Step 4: Return strict JSON only (no prose)
+        # Remove extra fields not in required schema
+        required_output = {
+            "prompt": output["prompt"],
+            "negative_prompt": output["negative_prompt"],
+            "aspect_ratio": output["aspect_ratio"],
+            "style": output["style"],
+            "seed": None  # Can be set by nb_image_agent if needed
+        }
+        return json.dumps(required_output, indent=2, ensure_ascii=False)
     
     def _build_main_prompt(self):
         """

@@ -67,8 +67,12 @@ class GDriveUploadTool(BaseTool):
         if not self._make_public(file_info['id']):
             print("Warning: Failed to make file publicly accessible. Using default permissions.")
         
-        # Step 5: Format and return results
-        return self._format_result(file_info)
+        # Step 5: Return strict JSON only (no prose)
+        result = {
+            "gdrive_url": file_info.get('webViewLink', f"https://drive.google.com/file/d/{file_info.get('id')}/view"),
+            "file_id": file_info.get('id', '')
+        }
+        return json.dumps(result, indent=2, ensure_ascii=False)
     
     def _download_image(self):
         """

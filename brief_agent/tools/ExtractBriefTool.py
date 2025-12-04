@@ -45,8 +45,8 @@ class ExtractBriefTool(BaseTool):
             "original_input": self.user_input[:200] + "..." if len(self.user_input) > 200 else self.user_input
         }
         
-        # Step 3: Format output
-        return self._format_brief(brief)
+        # Step 3: Return strict JSON only (no prose)
+        return json.dumps(brief, indent=2, ensure_ascii=False)
     
     def _extract_theme(self):
         """

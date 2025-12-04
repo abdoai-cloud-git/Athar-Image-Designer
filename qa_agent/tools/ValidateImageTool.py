@@ -4,6 +4,7 @@ import requests
 from PIL import Image
 from io import BytesIO
 import re
+import json
 
 
 class ValidateImageTool(BaseTool):
@@ -105,21 +106,24 @@ class ValidateImageTool(BaseTool):
         else:
             status = "pass"
         
-        # Step 4: Return formatted result
-        return self._format_result(
-            status=status,
-            issues=issues,
-            warnings=warnings,
-            passed_checks=passed_checks,
-            failed_checks=failed_checks,
-            image_info={
-                "width": image.width,
-                "height": image.height,
-                "actual_ratio": f"{image.width}:{image.height}",
-                "format": image.format,
-                "mode": image.mode
-            }
-        )
+        # Step 4: Return strict JSON only (no prose)
+        # Determine approved status
+        approved = (status == "pass" or status == "pass_with_warnings")
+        
+        # Build notes from issues and warnings
+        notes_parts = []
+        if issues:
+            notes_parts.extend(issues)
+        if warnings:
+            notes_parts.extend(warnings)
+        notes = "; ".join(notes_parts) if notes_parts else ""
+        
+        # Return JSON in required format
+        result = {
+            "approved": approved,
+            "notes": notes
+        }
+        return json.dumps(result, indent=2, ensure_ascii=False)
     
     def _download_image(self):
         """
