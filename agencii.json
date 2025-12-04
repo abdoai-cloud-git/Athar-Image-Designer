@@ -1,0 +1,154 @@
+{
+  "name": "athar-image-designer-swarm",
+  "version": "1.0.0",
+  "description": "Production-ready multi-agent system for generating high-quality cinematic Athar-style images using Nano Banana Pro via KIE API",
+  "framework": "agency-swarm",
+  "framework_version": "1.2.1",
+  "entry_point": "agency.py",
+  "entry_function": "create_agency",
+  "agents": [
+    {
+      "name": "brief_agent",
+      "role": "Creative Brief Specialist",
+      "description": "Extracts theme, tone, palette, and keywords from user input",
+      "entry_point": true
+    },
+    {
+      "name": "art_direction_agent",
+      "role": "Art Direction Specialist",
+      "description": "Converts creative brief into optimized Nano Banana prompts"
+    },
+    {
+      "name": "nb_image_agent",
+      "role": "Image Generation Specialist",
+      "description": "Generates images via Nano Banana Pro through KIE API"
+    },
+    {
+      "name": "qa_agent",
+      "role": "Quality Assurance Specialist",
+      "description": "Validates image quality, aspect ratio, and technical specs"
+    },
+    {
+      "name": "export_agent",
+      "role": "Export Specialist",
+      "description": "Uploads validated images to Google Drive with shareable URLs"
+    }
+  ],
+  "workflow": {
+    "type": "sequential_pipeline",
+    "flow": [
+      "brief_agent",
+      "art_direction_agent",
+      "nb_image_agent",
+      "qa_agent",
+      "export_agent"
+    ],
+    "retry_logic": {
+      "enabled": true,
+      "max_retries": 2,
+      "retry_flow": ["qa_agent", "nb_image_agent"]
+    }
+  },
+  "environment": {
+    "required_vars": [
+      "OPENAI_API_KEY",
+      "KIE_API_KEY",
+      "GOOGLE_SERVICE_ACCOUNT_JSON",
+      "GDRIVE_FOLDER_ID"
+    ],
+    "optional_vars": [
+      "KIE_API_BASE"
+    ],
+    "defaults": {
+      "KIE_API_BASE": "https://api.kie.ai/api/v1"
+    }
+  },
+  "deployment": {
+    "platform": "agencii.ai",
+    "runtime": "python3.11",
+    "container": {
+      "dockerfile": "Dockerfile",
+      "port": 8000
+    },
+    "health_check": {
+      "enabled": true,
+      "endpoint": "/health",
+      "interval": 30
+    },
+    "scaling": {
+      "min_instances": 1,
+      "max_instances": 5,
+      "auto_scale": true
+    }
+  },
+  "integrations": {
+    "apis": [
+      {
+        "name": "KIE API",
+        "url": "https://api.kie.ai/api/v1",
+        "authentication": "bearer_token",
+        "endpoints": [
+          "POST /playground/createTask",
+          "GET /playground/recordInfo"
+        ]
+      },
+      {
+        "name": "Google Drive API",
+        "url": "https://www.googleapis.com/drive/v3",
+        "authentication": "service_account",
+        "scopes": [
+          "https://www.googleapis.com/auth/drive.file"
+        ]
+      }
+    ]
+  },
+  "features": {
+    "async_mode": true,
+    "streaming": false,
+    "context_preservation": true,
+    "error_tracking": true,
+    "logging": {
+      "level": "INFO",
+      "format": "json"
+    }
+  },
+  "performance": {
+    "expected_completion_time": "2-5 minutes",
+    "timeout": 600,
+    "concurrent_requests": 3
+  },
+  "monitoring": {
+    "metrics": [
+      "generation_success_rate",
+      "qa_pass_rate",
+      "upload_success_rate",
+      "average_completion_time"
+    ],
+    "alerts": {
+      "generation_failure_threshold": 0.1,
+      "qa_failure_threshold": 0.3,
+      "timeout_threshold": 0.05
+    }
+  },
+  "documentation": {
+    "readme": "README.md",
+    "shared_instructions": "shared_instructions.md",
+    "api_reference": "https://agency-swarm.ai"
+  },
+  "tags": [
+    "image-generation",
+    "athar",
+    "cinematic",
+    "nano-banana",
+    "kie-api",
+    "google-drive",
+    "multi-agent",
+    "production"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "auto_deploy": true,
+    "branch": "main"
+  }
+}
