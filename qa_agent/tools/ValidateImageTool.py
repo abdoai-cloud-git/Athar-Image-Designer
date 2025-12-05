@@ -314,62 +314,36 @@ class ValidateImageTool(BaseTool):
     
     def _format_result(self, status, issues, passed_checks, failed_checks, warnings=None, image_info=None):
         """
-        Format validation results into a readable output.
+        Format validation results as pure JSON for downstream agent consumption.
+        CRITICAL: Returns ONLY JSON - no prose, no headers.
         """
+        import json
+        
         warnings = warnings or []
         image_info = image_info or {}
         
-        result_lines = [
-            f"Validation Status: {status.upper()}",
-            ""
-        ]
-        
-        if image_info:
-            result_lines.extend([
-                "Image Information:",
-                f"  - Dimensions: {image_info.get('width')}x{image_info.get('height')}",
-                f"  - Actual Ratio: {image_info.get('actual_ratio')}",
-                f"  - Format: {image_info.get('format')}",
-                f"  - Mode: {image_info.get('mode')}",
-                ""
-            ])
-        
-        if passed_checks:
-            result_lines.extend([
-                "✓ Passed Checks:",
-                *[f"  - {check}" for check in passed_checks],
-                ""
-            ])
-        
-        if failed_checks:
-            result_lines.extend([
-                "✗ Failed Checks:",
-                *[f"  - {check}" for check in failed_checks],
-                ""
-            ])
-        
-        if issues:
-            result_lines.extend([
-                "Issues Found:",
-                *[f"  - {issue}" for issue in issues],
-                ""
-            ])
-        
-        if warnings:
-            result_lines.extend([
-                "⚠ Warnings:",
-                *[f"  - {warning}" for warning in warnings],
-                ""
-            ])
+        # Determine approval and recommendation
+        approved = status in ["pass", "pass_with_warnings"]
         
         if status == "retry":
-            result_lines.append("Recommendation: Generate new image with corrections")
+            recommendation = "Generate new image with corrections"
         elif status == "pass_with_warnings":
-            result_lines.append("Recommendation: Image is acceptable but could be improved")
+            recommendation = "Image is acceptable but could be improved"
         else:
-            result_lines.append("Recommendation: Image quality is excellent, proceed to export")
+            recommendation = "Image quality is excellent, proceed to export"
         
-        return "\n".join(result_lines)
+        result = {
+            "approved": approved,
+            "status": status,
+            "passed_checks": passed_checks,
+            "failed_checks": failed_checks,
+            "issues": issues,
+            "warnings": warnings,
+            "image_info": image_info,
+            "recommendation": recommendation
+        }
+        
+        return json.dumps(result, indent=2)
 
 
 if __name__ == "__main__":

@@ -2,6 +2,7 @@ from agency_swarm.tools import BaseTool
 from pydantic import Field
 import os
 import time
+import json
 import requests
 from dotenv import load_dotenv
 
@@ -55,19 +56,19 @@ class KieNanoBananaTool(BaseTool):
         """
         
         if not KIE_API_KEY:
-            return "Error: KIE_API_KEY not found in environment variables. Please add it to your .env file."
+            return self._format_result(None, error="KIE_API_KEY not found in environment variables. Please add it to your .env file.")
         
         # Step 1: Create the image generation task
         task_id = self._create_task()
         if not task_id:
-            return "Error: Failed to create image generation task"
+            return self._format_result(None, error="Failed to create image generation task")
         
         print(f"Task created successfully. Task ID: {task_id}")
         
         # Step 2: Poll for task completion
         result = self._poll_task(task_id)
         if not result:
-            return f"Error: Task {task_id} failed or timed out"
+            return self._format_result(None, error=f"Task {task_id} failed or timed out")
         
         # Step 3: Extract and return image information
         return self._format_result(result)
@@ -167,14 +168,23 @@ class KieNanoBananaTool(BaseTool):
         print(f"Task timed out after {self.max_poll_attempts} attempts")
         return None
     
-    def _format_result(self, task_data):
+    def _format_result(self, task_data, error=None):
         """
-        Format the task result into a readable output.
+        Format the task result as pure JSON for downstream agent consumption.
+        CRITICAL: Returns ONLY JSON - no prose, no headers.
         """
+        # Handle error cases
+        if error:
+            return json.dumps({"success": False, "error": error}, indent=2)
+        
+        # Handle missing task data
+        if not task_data:
+            return json.dumps({"success": False, "error": "No task data available"}, indent=2)
+        
         images = task_data.get("images", [])
         
         if not images:
-            return "Error: No images generated"
+            return json.dumps({"success": False, "error": "No images generated"}, indent=2)
         
         # Extract primary image information
         primary_image = images[0]
@@ -189,17 +199,7 @@ class KieNanoBananaTool(BaseTool):
             "all_image_urls": [img.get("url") for img in images if img.get("url")]
         }
         
-        return f"""Image generation completed successfully!
-
-Image URL: {result['image_url']}
-Seed: {result['seed']}
-Aspect Ratio: {result['aspect_ratio']}
-Prompt Used: {result['prompt_used']}
-Total Images Generated: {result['num_images']}
-
-All Image URLs:
-{chr(10).join(f"  - {url}" for url in result['all_image_urls'])}
-"""
+        return json.dumps(result, indent=2)
 
 
 if __name__ == "__main__":

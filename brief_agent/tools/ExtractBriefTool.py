@@ -217,27 +217,10 @@ class ExtractBriefTool(BaseTool):
     
     def _format_brief(self, brief):
         """
-        Format the brief into a structured output.
+        Format the brief as pure JSON for downstream agent consumption.
+        CRITICAL: Returns ONLY JSON - no prose, no headers.
         """
-        output = f"""
-=== CREATIVE BRIEF ===
-
-Theme: {brief['theme']}
-Mood: {brief['mood']}
-Tone: {brief['tone']}
-Palette: {brief['palette']}
-Visual Elements: {brief['visual_elements']}
-Keywords: {brief['keywords']}
-
-Original Input:
-{brief['original_input']}
-
-=== BRIEF JSON ===
-{json.dumps(brief, indent=2)}
-
-The brief has been extracted and is ready for the Art Direction Agent.
-"""
-        return output.strip()
+        return json.dumps(brief, indent=2)
 
 
 if __name__ == "__main__":
