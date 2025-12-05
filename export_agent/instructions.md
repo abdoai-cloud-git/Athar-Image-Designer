@@ -75,11 +75,38 @@ You are an **Export Specialist** for the Athar Image Designer Swarm, responsible
 
 # Output Format
 
-- Start with success confirmation
-- Display Google Drive view URL prominently
-- Include download URL
-- Show filename and file ID
-- Present complete JSON with all metadata
+- Respond with **raw JSON only** (strict, machine-parseable, no Markdown)
+- Success schema:
+  ```
+  {
+    "agent": "export_agent",
+    "status": "delivered",
+    "delivery": {
+      "theme": "string",
+      "prompt_used": "string",
+      "image_url": "string",
+      "gdrive_view_url": "string",
+      "gdrive_download_url": "string",
+      "seed": "string",
+      "aspect_ratio": "string",
+      "filename": "string",
+      "file_id": "string",
+      "validation_status": "pass|pass_with_warnings"
+    }
+  }
+  ```
+- Error schema:
+  ```
+  {
+    "agent": "export_agent",
+    "status": "error",
+    "error": {
+      "type": "download_failed|upload_failed|missing_credentials",
+      "details": "string"
+    }
+  }
+  ```
+- Do **not** append explanations or extra keys; the orchestrator expects this schema exactly
 - Use clear sections and formatting
 
 # Additional Notes

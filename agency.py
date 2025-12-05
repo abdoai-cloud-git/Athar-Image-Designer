@@ -6,6 +6,7 @@ from art_direction_agent import art_direction_agent
 from nb_image_agent import nb_image_agent
 from qa_agent import qa_agent
 from export_agent import export_agent
+from workflow.structured_send_message import StructuredSendMessage
 
 import asyncio
 
@@ -38,6 +39,7 @@ def create_agency(load_threads_callback=None):
         ],
         name="AtharImageDesignerSwarm",
         shared_instructions="shared_instructions.md",
+        send_message_tool_class=StructuredSendMessage,
         load_threads_callback=load_threads_callback,
     )
 
