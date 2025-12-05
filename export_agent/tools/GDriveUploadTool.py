@@ -45,23 +45,23 @@ class GDriveUploadTool(BaseTool):
         
         # Step 1: Validate environment variables
         if not GOOGLE_SERVICE_ACCOUNT_JSON:
-            return "Error: GOOGLE_SERVICE_ACCOUNT_JSON not found in environment variables. Please add the service account JSON to your .env file."
+            return self._format_result(None, error="GOOGLE_SERVICE_ACCOUNT_JSON not found in environment variables. Please add the service account JSON to your .env file.")
         
         target_folder_id = self.folder_id or GDRIVE_FOLDER_ID
         if not target_folder_id:
-            return "Error: No folder_id provided and GDRIVE_FOLDER_ID not found in environment variables."
+            return self._format_result(None, error="No folder_id provided and GDRIVE_FOLDER_ID not found in environment variables.")
         
         # Step 2: Download the image
         image_bytes = self._download_image()
         if not image_bytes:
-            return "Error: Failed to download image from URL"
+            return self._format_result(None, error="Failed to download image from URL")
         
         print(f"Image downloaded successfully. Size: {len(image_bytes)} bytes")
         
         # Step 3: Upload to Google Drive
         file_info = self._upload_to_gdrive(image_bytes, target_folder_id)
         if not file_info:
-            return "Error: Failed to upload image to Google Drive"
+            return self._format_result(None, error="Failed to upload image to Google Drive")
         
         # Step 4: Make file publicly accessible
         if not self._make_public(file_info['id']):
@@ -199,11 +199,19 @@ class GDriveUploadTool(BaseTool):
         
         return mime_types.get(extension, 'image/png')
     
-    def _format_result(self, file_info):
+    def _format_result(self, file_info, error=None):
         """
         Format the upload result as pure JSON for downstream agent consumption.
         CRITICAL: Returns ONLY JSON - no prose, no headers.
         """
+        # Handle error cases
+        if error:
+            return json.dumps({"success": False, "error": error}, indent=2)
+        
+        # Handle missing file info
+        if not file_info:
+            return json.dumps({"success": False, "error": "No file information available"}, indent=2)
+        
         result = {
             "success": True,
             "file_id": file_info.get('id', ''),
