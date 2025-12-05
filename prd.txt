@@ -1,0 +1,236 @@
+# Athar Content Automation Syndicate (ACAS)
+
+---
+
+- **Purpose:** Build a production-grade multi-agent studio that turns ambiguous client inputs into fully packaged content deliverables. The system orchestrates Gemini 3 + GPT-5.1 models, codifies automation specs for Make and n8n, enforces creative/review standards, and ships export-ready assets without human intervention.
+
+- **Communication Flows:**
+  - **Between Agents:**
+    - **Orchestrator ➝ Intake Agent:** Initiate every project with context, retrieve prior state from the ledger, and request a structured intake brief.
+    - **Intake Agent ➝ Strategy Agent:** Pass validated intents, assets, and constraints once client inputs are normalized.
+    - **Strategy Agent ➝ (Creator Agent, Coding Agent, Technical Agent):** Dispatch scoped work packets with milestones, ensuring the Creator handles narrative/visual assets, Coding preps automations, and Technical formats deliverables.
+    - **Creator/Coding/Technical Agents ➝ Reviewer Agent:** Submit artifacts plus metadata for multi-dimensional QA.
+    - **Reviewer Agent ➝ (Creator/Coding/Technical):** Issue corrections until quality thresholds pass.
+    - **Reviewer Agent ➝ Delivery Agent:** Hand off approved bundles with acceptance notes.
+    - **Delivery Agent ➝ Orchestrator:** Confirm shipment, push telemetry into state ledger, and release final response to user.
+  - **Agent to User Communication:** Users only see Output from the Orchestrator. It shares structured summaries, exposes statuses, and surfaces reviewer escalations when requirements are unclear.
+
+---
+
+## Orchestrator Agent ("The Don")
+
+### Role within the Agency
+Executive controller that manages work queues, watches state transitions, and keeps memory of every engagement.
+
+### Tools
+- **StateLedgerTool:**
+  - **Description:** Persist/retrieve workflow milestones in a dedicated SQLite ledger (`./state/acas_state.db`) so every agent can resume long-running jobs.
+  - **Inputs:**
+    - `operation` (Literal["write","read","list"])
+    - `payload` (dict) – required for `write`
+    - `record_id` (str) – required for targeted `read`
+  - **Validation:** Reject writes without `record_id`; ensure payload serializes to JSON.
+  - **Core Functions:** open SQLite connection, apply UPSERT, fetch history ordered by timestamp.
+  - **APIs:** Standard `sqlite3` module (local file).
+  - **Output:** JSON string describing success plus stored/fetched records.
+- **WorkflowDiagnosticsTool:**
+  - **Description:** Inspect agent logs under `./logs/` and summarize blockers for escalation.
+  - **Inputs:** `log_scope` (str), `time_window_minutes` (int)
+  - **Validation:** Ensure folder exists; error if no matching logs in window.
+  - **Core Functions:** glob logs, parse JSON lines, detect failures, emit remediation checklist.
+  - **APIs:** Filesystem only.
+- **MCP Name:** `@modelcontextprotocol/server-filesystem`
+  - **URL:** https://github.com/modelcontextprotocol/server-filesystem
+  - **Authentication:** none (local)
+  - **Allowed Tools:** `read_file`, `write_file`, `list_dir`
+
+---
+
+## Intake Agent ("Gatekeeper")
+
+### Role within the Agency
+Interviews the client, hunts for missing info, and produces a contractual brief with goals, constraints, assets, and success metrics.
+
+### Tools
+- **StructuredIntakeTool:**
+  - **Description:** Convert messy chat/email text into a normalized intake JSON using Athar tone checks.
+  - **Inputs:** `raw_message` (str), `channel` (Enum["chat","email","form"])
+  - **Validation:** Detect profanity or ambiguous scopes; flag for Orchestrator confirmation.
+  - **Core Functions:** run regex/LLM parsing, map to schema, attach user priority tags.
+  - **APIs:** OpenAI Assistants API (gpt-5.1) for extraction.
+  - **Output:** JSON string with `objective`, `constraints`, `assets_provided`, `missing_info`, `success_definition`.
+- **AssetRegistryLookupTool:**
+  - **Description:** Pull prior brand assets or knowledge from `/workspace/files/brand_registry/` or Notion (via MCP) to avoid rework.
+  - **Inputs:** `brand` (str), `asset_type` (str)
+  - **Validation:** Confirm file exists; fallback to Notion search only when path missing.
+  - **Core Functions:** search filesystem, optionally call MCP Notion server.
+  - **APIs:**
+    - Filesystem MCP (local)
+    - Optional Notion MCP (package: `@modelcontextprotocol/server-notion`)
+  - **Output:** JSON with asset paths/links.
+- **MCP Name:** `@modelcontextprotocol/server-notion` (optional)
+  - **URL:** https://github.com/agencyswarm/notion-mcp
+  - **Authentication:** Notion integration token via `NOTION_API_KEY`
+  - **Allowed Tools:** `search`, `retrieve_page`
+
+---
+
+## Strategy Agent ("Mastermind")
+
+### Role within the Agency
+Translates the intake brief into executable playbooks: milestones, channels, required assets, and review metrics.
+
+### Tools
+- **WorkflowBlueprintTool:**
+  - **Description:** Create multi-track plans (content, automation, technical) with dependencies and owners.
+  - **Inputs:** `brief` (dict), `available_agents` (list[str])
+  - **Validation:** Must assign at least one deliverable per downstream agent.
+  - **Core Functions:** build DAG, annotate SLA, push tasks into state ledger.
+  - **APIs:** OpenAI (planning) + SQLite ledger (through StateLedgerTool interface).
+  - **Output:** JSON blueprint with `tasks`, `dependencies`, `risk_register`.
+- **RiskRegisterTool:**
+  - **Description:** Score risks across creative, technical, legal vectors; recommend mitigation.
+  - **Inputs:** `blueprint` (dict)
+  - **Validation:** Provide rationale for any risk over `0.6` severity.
+  - **Core Functions:** apply heuristics, log to ledger, notify Orchestrator when `severity>0.8`.
+  - **APIs:** none beyond local computation.
+- **MCP Name:** None (native tools)
+
+---
+
+## Creator Agent ("Powerhouse")
+
+### Role within the Agency
+Produces copy, scripts, visual references, or concept boards that reflect Athar's tone and user strategy.
+
+### Tools
+- **MultimodalContentTool:**
+  - **Description:** Generate long-form or multi-asset content using Gemini 3 for ideation and GPT-5.1 for polishing.
+  - **Inputs:** `task_packet` (dict), `model_preference` (Enum["gemini","gpt"]), `length` (str)
+  - **Validation:** Enforce Athar style guide; decline if tone mismatch.
+  - **Core Functions:** call Google AI Studio (Gemini 3) + OpenAI, merge outputs, cite references.
+  - **APIs:**
+    - Google Generative Language API (Gemini 3.0 Pro)
+    - OpenAI API (gpt-5.1)
+  - **Output:** Markdown/JSON with sections, CTAs, creative notes.
+- **ReferenceSamplerTool:**
+  - **Description:** Retrieve inspiration boards from `art_direction_agent/files/` or external Pinterest via MCP.
+  - **Inputs:** `theme` (str), `mood` (str)
+  - **Validation:** Ensure references respect licensing metadata.
+  - **APIs:** Filesystem MCP + Pinterest API (custom HTTP, auth via `PINTEREST_TOKEN`).
+  - **Output:** JSON list of reference URLs + captions.
+- **MCP Name:** Filesystem MCP (see above)
+
+---
+
+## Coding Agent ("Engineer/Sniper")
+
+### Role within the Agency
+Creates and validates automation glue—JSON payloads, Make blueprints, n8n workflow definitions, schema validators, and lightweight scripts.
+
+### Tools
+- **AutomationBlueprintTool:**
+  - **Description:** Produce executable specs for Make and n8n from strategy packets.
+  - **Inputs:** `automation_scope` (dict), `platform` (Enum["make","n8n"])
+  - **Validation:** Validate against Make v2 module schema or n8n node schema via JSON Schema definitions.
+  - **Core Functions:** map triggers/actions, assign credentials, emit JSON ready for import.
+  - **APIs:**
+    - Make API (`https://eu1.make.com/api/v2/blueprints`)
+    - n8n REST API (`/rest/workflows`)
+  - **Output:** JSON spec plus signed URL of stored blueprint (saved under `./automations/`).
+- **TemplateValidatorTool:**
+  - **Description:** Run unit-style tests on automation/data templates (Jinja, Liquid, HTML) before Technical Agent uses them.
+  - **Inputs:** `template_path` (str), `sample_payload` (dict)
+  - **Validation:** Fails if template renders with missing keys or invalid HTML.
+  - **Core Functions:** load template, render with sample, run HTML tidy, report issues.
+  - **APIs:** Filesystem + `tidylib`.
+- **MCP Name:** None (custom tools)
+
+---
+
+## Technical Agent ("Formatter/Template Operator")
+
+### Role within the Agency
+Transforms creative output plus automation specs into polished, on-brand deliverables across Docs, Slides, PDFs, or CMS packages.
+
+### Tools
+- **TemplateAssemblerTool:**
+  - **Description:** Inject approved content into Google Docs/Slides or local InDesign templates via CLI exporters.
+  - **Inputs:** `template_id` (str), `content_blocks` (dict), `format` (Enum["doc","slide","pdf","html"])
+  - **Validation:** Require Reviewer-approved version ID; verify template exists.
+  - **Core Functions:** fetch template (Google Drive API or local), populate placeholders, export.
+  - **APIs:** Google Drive + Docs/Slides API (service account), local CLI for PDF.
+  - **Output:** File path + shareable link.
+- **LayoutComplianceTool:**
+  - **Description:** Run accessibility, typography, and brand checks (color contrast, font usage) on generated documents.
+  - **Inputs:** `asset_path` (str)
+  - **Validation:** Fail if contrast ratio < 4.5 or fonts outside Athar whitelist.
+  - **Core Functions:** parse document via `pdfminer`/Slides API, compute metrics, log warnings.
+  - **APIs:** Google Drive API + local libs.
+- **MCP Name:** None
+
+---
+
+## Reviewer Agent ("Auditor")
+
+### Role within the Agency
+Acts as quality gate and evaluator, enforcing technical, creative, and factual standards with an explicit scoring rubric.
+
+### Tools
+- **QualityScorecardTool:**
+  - **Description:** Score deliverables across clarity, creativity, compliance, automation readiness.
+  - **Inputs:** `asset_metadata` (dict), `asset_path` (str)
+  - **Validation:** Each dimension must be scored 1-5 with notes; fail if any <3.
+  - **Core Functions:** load artifacts, compare vs success metrics, log scoreboard to ledger.
+  - **APIs:** Filesystem + OpenAI for critique assistance.
+  - **Output:** JSON report with pass/fail plus required revisions.
+- **FactCheckTool:**
+  - **Description:** Validate factual claims using Brave Search MCP + internal knowledge base.
+  - **Inputs:** `claims` (list[str])
+  - **Validation:** Provide citation URLs for every verified claim.
+  - **APIs:** `@modelcontextprotocol/server-brave-search`
+  - **Output:** JSON list of claim status + citations.
+- **MCP Name:** `@modelcontextprotocol/server-brave-search`
+  - **URL:** https://github.com/modelcontextprotocol/server-brave-search
+  - **Authentication:** `BRAVE_API_KEY`
+  - **Allowed Tools:** `search`
+
+---
+
+## Delivery Agent ("Finisher")
+
+### Role within the Agency
+Packages the vetted work, publishes to the right destinations, and communicates completion back to the user and external systems.
+
+### Tools
+- **PackageAndExportTool:**
+  - **Description:** Bundle final assets, generate ZIP plus JSON manifest, upload to Google Drive/S3.
+  - **Inputs:** `asset_paths` (list[str]), `delivery_mode` (Enum["drive","s3","webhook"])
+  - **Validation:** Ensure every path exists and reviewer signature present.
+  - **Core Functions:** archive assets, upload via API, capture share links.
+  - **APIs:** Google Drive API, AWS S3 (via `boto3`).
+  - **Output:** JSON with `delivery_links`, `manifest_url`.
+- **ClientWebhookTool:**
+  - **Description:** Trigger downstream automations (Make, Slack, CRM) via configurable webhooks.
+  - **Inputs:** `webhook_url` (str), `payload` (dict)
+  - **Validation:** Verify URL domain against approved allowlist before POST.
+  - **Core Functions:** sign payload, POST with retries, log to ledger.
+  - **APIs:** HTTPS requests.
+- **MCP Name:** None
+
+---
+
+## External Integrations & Environment Variables
+
+- **OpenAI API** (`OPENAI_API_KEY`)
+- **Google Generative Language API (Gemini 3)** (`GOOGLE_API_KEY`)
+- **Google Drive/Docs/Slides** (`GOOGLE_SERVICE_ACCOUNT_JSON`, `GDRIVE_WORKSPACE_FOLDER`)
+- **Make API** (`MAKE_API_KEY`, `MAKE_BASE_URL`)
+- **n8n API** (`N8N_API_KEY`, `N8N_BASE_URL`)
+- **Pinterest API** (`PINTEREST_TOKEN`)
+- **Notion MCP** (`NOTION_API_KEY`, optional)
+- **Brave Search MCP** (`BRAVE_API_KEY`)
+- **AWS S3** (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION`, `S3_BUCKET`)
+- **Ledger Storage** (`ACAS_STATE_DB_PATH`, defaults to `./state/acas_state.db`)
+
+This PRD restructures the repo toward a seven-agent production studio with optional orchestrator oversight, explicit state management, and review/delivery layers inspired by the Agencii.ai marketplace reference.
