@@ -1,12 +1,23 @@
 from agency_swarm.tools import BaseTool
 from pydantic import Field
-import os
-import time
 import json
+import logging
+import os
+import random
+import time
+from typing import Optional, Tuple
+
 import requests
+from requests import Session
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from dotenv import load_dotenv
 
+from monitoring import emit_event
+
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 # KIE API Configuration
 KIE_API_KEY = os.getenv("KIE_API_KEY")
@@ -41,12 +52,32 @@ class KieNanoBananaTool(BaseTool):
     
     max_poll_attempts: int = Field(
         default=60,
-        description="Maximum number of polling attempts before timeout"
+        description="Maximum number of polling attempts before timeout (legacy control, still honored)"
     )
     
     poll_interval: int = Field(
         default=5,
-        description="Seconds to wait between polling attempts"
+        description="Base seconds to wait between polling attempts (used in exponential backoff)"
+    )
+
+    max_wait_seconds: int = Field(
+        default=600,
+        description="Hard timeout in seconds before aborting poll loop"
+    )
+
+    max_backoff_seconds: int = Field(
+        default=30,
+        description="Maximum delay between poll attempts when backing off"
+    )
+
+    request_timeout_seconds: int = Field(
+        default=30,
+        description="Request timeout for all KIE HTTP calls"
+    )
+
+    backoff_growth: float = Field(
+        default=1.8,
+        description="Multiplier applied to poll interval after each attempt"
     )
 
     def run(self):
@@ -56,24 +87,70 @@ class KieNanoBananaTool(BaseTool):
         """
         
         if not KIE_API_KEY:
+            emit_event("kie_missing_api_key", level="error")
             return self._format_result(None, error="KIE_API_KEY not found in environment variables. Please add it to your .env file.")
         
+        session = self._build_session()
+        
         # Step 1: Create the image generation task
-        task_id = self._create_task()
+        task_id = self._create_task(session)
         if not task_id:
             return self._format_result(None, error="Failed to create image generation task")
         
-        print(f"Task created successfully. Task ID: {task_id}")
+        logger.info("KIE task created successfully | task_id=%s", task_id)
+        emit_event(
+            "kie_task_created",
+            task_id=task_id,
+            aspect_ratio=self.aspect_ratio,
+            num_images=self.num_images,
+        )
         
         # Step 2: Poll for task completion
-        result = self._poll_task(task_id)
-        if not result:
-            return self._format_result(None, error=f"Task {task_id} failed or timed out")
+        task_data, poll_meta = self._poll_task(session, task_id)
+        if not task_data:
+            emit_event(
+                "kie_task_failed",
+                level="error",
+                task_id=task_id,
+                metadata=poll_meta,
+            )
+            return self._format_result(None, error=f"Task {task_id} failed or timed out", metadata=poll_meta)
+        
+        emit_event(
+            "kie_task_completed",
+            task_id=task_id,
+            duration=poll_meta.get("poll_duration_seconds"),
+            attempts=poll_meta.get("attempts"),
+        )
+        if (poll_meta.get("poll_duration_seconds") or 0) > 120 or (poll_meta.get("attempts") or 0) > 3:
+            emit_event(
+                "kie_slow_poll",
+                level="warning",
+                task_id=task_id,
+                duration=poll_meta.get("poll_duration_seconds"),
+                attempts=poll_meta.get("attempts"),
+            )
         
         # Step 3: Extract and return image information
-        return self._format_result(result)
+        return self._format_result(task_data, metadata=poll_meta)
     
-    def _create_task(self):
+    def _build_session(self) -> Session:
+        """
+        Configure a requests Session with retries for transient network issues.
+        """
+        session = requests.Session()
+        retry = Retry(
+            total=5,
+            backoff_factor=0.5,
+            status_forcelist=[408, 429, 500, 502, 503, 504],
+            allowed_methods=["GET", "POST"],
+        )
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount("https://", adapter)
+        session.mount("http://", adapter)
+        return session
+
+    def _create_task(self, session: Session) -> Optional[str]:
         """
         Create an image generation task using KIE API.
         Returns the task ID if successful, None otherwise.
@@ -96,7 +173,7 @@ class KieNanoBananaTool(BaseTool):
         }
         
         try:
-            response = requests.post(url, json=payload, headers=headers, timeout=30)
+            response = session.post(url, json=payload, headers=headers, timeout=self.request_timeout_seconds)
             response.raise_for_status()
             
             data = response.json()
@@ -104,20 +181,23 @@ class KieNanoBananaTool(BaseTool):
             if data.get("success") and data.get("data", {}).get("taskId"):
                 return data["data"]["taskId"]
             else:
-                print(f"Task creation failed: {data.get('message', 'Unknown error')}")
+                logger.error("Task creation failed | response=%s", data)
                 return None
                 
         except requests.exceptions.Timeout:
-            print("Error: Request timed out while creating task")
+            logger.error("KIE createTask timeout after %ss", self.request_timeout_seconds)
             return None
-        except requests.exceptions.RequestException as e:
-            print(f"Error creating task: {str(e)}")
+        except requests.exceptions.SSLError as exc:
+            logger.error("KIE SSL handshake failure during createTask | error=%s", exc)
+            return None
+        except requests.exceptions.RequestException as exc:
+            logger.error("Error creating task | error=%s", exc)
             return None
     
-    def _poll_task(self, task_id):
+    def _poll_task(self, session: Session, task_id: str) -> Tuple[Optional[dict], dict]:
         """
         Poll the task status until completion or timeout.
-        Returns the task result if successful, None otherwise.
+        Returns the task result and metadata if successful, otherwise (None, meta).
         """
         url = f"{KIE_API_BASE}/playground/recordInfo"
         
@@ -129,68 +209,123 @@ class KieNanoBananaTool(BaseTool):
             "taskId": task_id
         }
         
-        for attempt in range(self.max_poll_attempts):
+        start = time.monotonic()
+        delay = self.poll_interval
+        attempts = 0
+        
+        while attempts < self.max_poll_attempts and (time.monotonic() - start) < self.max_wait_seconds:
+            attempts += 1
             try:
-                response = requests.get(url, params=params, headers=headers, timeout=30)
+                response = session.get(url, params=params, headers=headers, timeout=self.request_timeout_seconds)
                 response.raise_for_status()
                 
                 data = response.json()
                 
                 if not data.get("success"):
-                    print(f"Error polling task: {data.get('message', 'Unknown error')}")
-                    return None
+                    logger.warning("Error polling task | task_id=%s | message=%s", task_id, data.get("message"))
+                return None, self._poll_meta(task_id, attempts, start)
                 
                 task_data = data.get("data", {})
                 status = task_data.get("status", "")
                 
-                print(f"Attempt {attempt + 1}/{self.max_poll_attempts}: Status = {status}")
+                logger.info(
+                    "KIE poll attempt %s | task_id=%s | status=%s",
+                    attempts,
+                    task_id,
+                    status,
+                )
                 
                 if status == "completed":
-                    return task_data
-                elif status == "failed":
-                    print(f"Task failed: {task_data.get('error', 'Unknown error')}")
-                    return None
-                elif status in ["pending", "processing", "queued"]:
-                    # Wait before next poll with exponential backoff
-                    wait_time = min(self.poll_interval * (1.5 ** (attempt // 10)), 30)
-                    time.sleep(wait_time)
-                else:
-                    print(f"Unknown status: {status}")
-                    time.sleep(self.poll_interval)
-                    
+                    return task_data, self._poll_meta(task_id, attempts, start)
+                if status in {"failed", "error"}:
+                    logger.error("KIE task failed | task_id=%s | payload=%s", task_id, task_data)
+                    emit_event(
+                        "kie_generation_failed",
+                        level="error",
+                        task_id=task_id,
+                        payload=task_data,
+                    )
+                    return None, self._poll_meta(task_id, attempts, start)
+                
+            except requests.exceptions.SSLError as exc:
+                logger.error("KIE SSL error during poll | task_id=%s | attempt=%s | error=%s", task_id, attempts, exc)
             except requests.exceptions.Timeout:
-                print(f"Timeout on attempt {attempt + 1}")
-                time.sleep(self.poll_interval)
-            except requests.exceptions.RequestException as e:
-                print(f"Error polling task: {str(e)}")
-                time.sleep(self.poll_interval)
+                logger.warning("KIE poll timeout | task_id=%s | attempt=%s", task_id, attempts)
+            except requests.exceptions.RequestException as exc:
+                logger.warning("KIE network error during poll | task_id=%s | attempt=%s | error=%s", task_id, attempts, exc)
+            
+            # Respect max wait
+            if (time.monotonic() - start) >= self.max_wait_seconds:
+                break
+            
+            jitter = random.uniform(0, 0.5)
+            time.sleep(min(delay + jitter, self.max_backoff_seconds))
+            delay = min(delay * self.backoff_growth, self.max_backoff_seconds)
         
-        print(f"Task timed out after {self.max_poll_attempts} attempts")
-        return None
+        duration = time.monotonic() - start
+        logger.error(
+            "KIE task timed out | task_id=%s | attempts=%s | duration=%.2fs",
+            task_id,
+            attempts,
+            duration,
+        )
+        emit_event(
+            "kie_task_timeout",
+            level="error",
+            task_id=task_id,
+            attempts=attempts,
+            duration=round(duration, 2),
+        )
+        return None, self._poll_meta(task_id, attempts, start)
     
-    def _format_result(self, task_data, error=None):
+    def _poll_meta(self, task_id: str, attempts: int, start_time: float) -> dict:
+        """
+        Helper to record monitoring metadata for poll behavior.
+        """
+        return {
+            "task_id": task_id,
+            "attempts": attempts,
+            "poll_duration_seconds": round(time.monotonic() - start_time, 2),
+        }
+    
+    def _format_result(self, task_data, error=None, metadata=None):
         """
         Format the task result as pure JSON for downstream agent consumption.
         CRITICAL: Returns ONLY JSON - no prose, no headers.
         """
+        metadata = metadata or {}
+        
         # Handle error cases
         if error:
-            return json.dumps({"success": False, "error": error}, indent=2)
+            return json.dumps(
+                {
+                    "success": False,
+                    "error": error,
+                    "metadata": metadata,
+                },
+                indent=2,
+            )
         
         # Handle missing task data
         if not task_data:
-            return json.dumps({"success": False, "error": "No task data available"}, indent=2)
+            return json.dumps(
+                {"success": False, "error": "No task data available", "metadata": metadata},
+                indent=2,
+            )
         
         images = task_data.get("images", [])
         
         if not images:
-            return json.dumps({"success": False, "error": "No images generated"}, indent=2)
+            return json.dumps({"success": False, "error": "No images generated", "metadata": metadata}, indent=2)
         
         # Extract primary image information
         primary_image = images[0]
         
         result = {
             "success": True,
+            "task_id": metadata.get("task_id"),
+            "poll_duration_seconds": metadata.get("poll_duration_seconds"),
+            "attempts": metadata.get("attempts"),
             "image_url": primary_image.get("url", ""),
             "seed": task_data.get("seed", "N/A"),
             "prompt_used": task_data.get("prompt", self.prompt),
