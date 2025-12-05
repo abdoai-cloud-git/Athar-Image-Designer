@@ -222,9 +222,13 @@ class KieNanoBananaTool(BaseTool):
                 data = response.json()
                 
                 if not data.get("success"):
-                    logger.warning("Error polling task | task_id=%s | message=%s", task_id, data.get("message"))
-                return None, self._poll_meta(task_id, attempts, start)
-                
+                    logger.warning(
+                        "Error polling task | task_id=%s | message=%s",
+                        task_id,
+                        data.get("message"),
+                    )
+                    return None, self._poll_meta(task_id, attempts, start)
+
                 task_data = data.get("data", {})
                 status = task_data.get("status", "")
                 
