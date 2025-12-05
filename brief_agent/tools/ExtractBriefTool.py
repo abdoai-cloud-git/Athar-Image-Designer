@@ -1,7 +1,9 @@
 from agency_swarm.tools import BaseTool
-from pydantic import Field
+from pydantic import Field, ValidationError
 import json
 import re
+
+from shared.schemas import CreativeBriefSchema
 
 
 class ExtractBriefTool(BaseTool):
@@ -220,7 +222,18 @@ class ExtractBriefTool(BaseTool):
         Format the brief as pure JSON for downstream agent consumption.
         CRITICAL: Returns ONLY JSON - no prose, no headers.
         """
-        return json.dumps(brief, indent=2)
+        try:
+            validated = CreativeBriefSchema(**brief).normalized()
+            return json.dumps(validated, indent=2)
+        except ValidationError as exc:
+            return json.dumps(
+                {
+                    "error": "brief_validation_failed",
+                    "details": exc.errors(),
+                    "original_input": brief.get("original_input", self.user_input),
+                },
+                indent=2,
+            )
 
 
 if __name__ == "__main__":

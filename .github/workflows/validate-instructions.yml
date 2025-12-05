@@ -1,0 +1,14 @@
+name: validate-instructions
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check-prose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Validate agent instructions
+        run: ./scripts/check_instructions.sh
