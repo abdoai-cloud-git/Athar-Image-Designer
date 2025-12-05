@@ -4,24 +4,36 @@ Smoke test script for Athar Image Designer Swarm
 Tests the entire workflow with JSON validation
 """
 
+import json
 import os
 import sys
-import json
 from pathlib import Path
 from dotenv import load_dotenv
+
+from shared.schemas import (
+    CreativeBriefSchema,
+    PromptPayloadSchema,
+    ImageGenerationResultSchema,
+)
+from shared.workflow_guard import (
+    guard_agent_output,
+    WorkflowValidationError,
+    fail_fast_payload,
+)
 
 # Load environment
 load_dotenv()
 
-def check_json_output(output_str, tool_name):
-    """Validate that output is pure JSON"""
+
+def validate_output(agent_name, output_str, schema):
+    """Validate output via strict JSON schema."""
     try:
-        parsed = json.loads(output_str)
-        print(f"✓ {tool_name}: Valid JSON output")
-        return True, parsed
-    except json.JSONDecodeError as e:
-        print(f"✗ {tool_name}: NOT pure JSON - {e}")
-        print(f"  Output preview: {output_str[:200]}...")
+        validated = guard_agent_output(agent_name, output_str, schema)
+        print(f"✓ {agent_name}: Schema validated")
+        return True, validated
+    except WorkflowValidationError as err:
+        print(f"✗ {agent_name}: validation failed")
+        print(fail_fast_payload(err))
         return False, None
 
 def test_brief_tool():
@@ -33,7 +45,7 @@ def test_brief_tool():
         user_input="اقترب من ذاتك أكثر. Create a serene desert scene at sunset."
     )
     output = tool.run()
-    is_valid, data = check_json_output(output, "ExtractBriefTool")
+    is_valid, data = validate_output("brief_agent", output, CreativeBriefSchema)
     
     if is_valid:
         print(f"  - Theme: {data.get('theme', 'N/A')}")
@@ -53,7 +65,7 @@ def test_art_direction_tool():
         aspect_ratio="4:5"
     )
     output = tool.run()
-    is_valid, data = check_json_output(output, "GeneratePromptTool")
+    is_valid, data = validate_output("art_direction_agent", output, PromptPayloadSchema)
     
     if is_valid:
         print(f"  - Has prompt: {'prompt' in data}")
@@ -62,9 +74,26 @@ def test_art_direction_tool():
     
     return is_valid
 
+
+def test_image_schema_sample():
+    """Sanity-check image schema validation with sample payload."""
+    print("\n3. Testing Image Result Schema (Sample Payload)...")
+    sample = {
+        "success": True,
+        "image_url": "https://example.com/sample.png",
+        "seed": "12345",
+        "prompt_used": "Sample prompt",
+        "aspect_ratio": "4:5",
+        "num_images": 1,
+        "all_image_urls": ["https://example.com/sample.png"],
+    }
+    output = json.dumps(sample)
+    is_valid, _ = validate_output("nb_image_agent", output, ImageGenerationResultSchema)
+    return is_valid
+
 def test_kie_endpoint():
     """Test KIE API endpoint reachability"""
-    print("\n3. Testing KIE API Endpoint...")
+    print("\n4. Testing KIE API Endpoint...")
     import requests
     
     api_key = os.getenv("KIE_API_KEY")
@@ -95,7 +124,7 @@ def test_kie_endpoint():
 
 def test_env_variables():
     """Check required environment variables"""
-    print("\n4. Testing Environment Variables...")
+    print("\n5. Testing Environment Variables...")
     
     required_vars = {
         "OPENAI_API_KEY": "Required for agent orchestration",
@@ -122,12 +151,21 @@ def main():
     print("ATHAR IMAGE DESIGNER SWARM - SMOKE TEST")
     print("=" * 70)
     
-    results = {
-        "Brief Tool JSON": test_brief_tool(),
-        "Art Direction Tool JSON": test_art_direction_tool(),
-        "KIE Endpoint": test_kie_endpoint(),
-        "Environment Variables": test_env_variables()
-    }
+    tests = [
+        ("Brief Tool JSON", test_brief_tool),
+        ("Art Direction Tool JSON", test_art_direction_tool),
+        ("Image Result Schema Sample", test_image_schema_sample),
+        ("KIE Endpoint", test_kie_endpoint),
+        ("Environment Variables", test_env_variables),
+    ]
+
+    results = {}
+    for name, fn in tests:
+        passed = fn()
+        results[name] = passed
+        if not passed:
+            print("\nStopping smoke run due to failure above.")
+            break
     
     print("\n" + "=" * 70)
     print("SUMMARY")
@@ -137,7 +175,7 @@ def main():
         status = "✓ PASS" if passed else "✗ FAIL"
         print(f"{status}: {test_name}")
     
-    all_passed = all(results.values())
+    all_passed = all(results.values()) and len(results) == len(tests)
     
     print("\n" + "=" * 70)
     if all_passed:

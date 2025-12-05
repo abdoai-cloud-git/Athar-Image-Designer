@@ -1,6 +1,8 @@
 from agency_swarm.tools import BaseTool
-from pydantic import Field
+from pydantic import Field, ValidationError
 import json
+
+from shared.schemas import PromptPayloadSchema
 
 
 class GeneratePromptTool(BaseTool):
@@ -169,7 +171,17 @@ class GeneratePromptTool(BaseTool):
         Format the output as pure JSON for downstream agent consumption.
         CRITICAL: Returns ONLY JSON - no prose, no headers.
         """
-        return json.dumps(output, indent=2)
+        try:
+            validated = PromptPayloadSchema(**output).normalized()
+            return json.dumps(validated, indent=2)
+        except ValidationError as exc:
+            return json.dumps(
+                {
+                    "error": "prompt_validation_failed",
+                    "details": exc.errors(),
+                },
+                indent=2,
+            )
 
 
 if __name__ == "__main__":

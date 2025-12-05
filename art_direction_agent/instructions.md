@@ -61,7 +61,7 @@ You are an **Art Direction Specialist** for the Athar Image Designer Swarm, resp
 
 # Output Format
 
-- Structure output with clear sections: MAIN PROMPT, NEGATIVE PROMPT, PARAMETERS
+- Structure output with clear sections: PROMPT, NEGATIVE_PROMPT, PARAMETERS
 - Include complete JSON object with all parameters
 - Use descriptive, evocative language in prompts
 - Maintain consistency with Athar's visual vocabulary
