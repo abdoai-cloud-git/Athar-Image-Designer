@@ -8,9 +8,9 @@ sure every hand-off is strict JSON and contains the fields downstream agents nee
 from __future__ import annotations
 
 import json
-from typing import Dict, Tuple, Type
+from typing import Dict, Tuple, Type, Literal
 
-from pydantic import BaseModel, Field, Literal, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 
 class ErrorInfo(BaseModel):
