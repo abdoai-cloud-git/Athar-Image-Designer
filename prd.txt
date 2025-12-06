@@ -1,0 +1,400 @@
+# PRD: 7-Agent Content Automation Agency
+
+## Agency Overview
+
+**Name:** Content Automation Studio
+**Purpose:** An orchestrated multi-agent system that automates end-to-end content creation workflows from brief intake to final delivery
+**Architecture Pattern:** Orchestrator-Workers with Sequential Pipeline
+**Inspiration:** Agencii.ai marketplace structure (https://agencii.ai/marketplace/Ge3NC5nQZqz9gFMuptA6/)
+
+## Core Philosophy
+
+1. Break complex content tasks into specialist roles
+2. Each agent operates within their expertise domain only
+3. Orchestrator agent delegates and controls quality
+4. Agents communicate through structured messages
+5. System iterates until output meets quality standards
+
+## Agents Architecture
+
+### 1. Orchestrator Agent (The Don)
+**Role:** Central manager and workflow coordinator
+**Responsibilities:**
+- Receives user requests and orchestrates entire workflow
+- Delegates tasks to specialist agents
+- Tracks workflow state and progress
+- Handles conflicts and restarts failing steps
+- Maintains workflow memory
+- Ensures job completion
+
+**Tools (4-6):**
+1. DelegateTaskTool - Assigns tasks to specialist agents
+2. WorkflowStateTool - Tracks progress and agent status
+3. ConflictResolutionTool - Handles agent conflicts and errors
+4. RestartStepTool - Restarts failed workflow steps
+5. QualityCheckTool - Validates final output against standards
+
+**Communication Flows:**
+- User → Orchestrator (entry point)
+- Orchestrator → All other agents (can communicate with everyone)
+
+---
+
+### 2. Intake Agent (The Gatekeeper)
+**Role:** Extract and structure user requirements
+**Responsibilities:**
+- Clarify vague or messy user input
+- Extract structured brief from conversation
+- Validate completeness of requirements
+- Identify missing information
+- Define success criteria
+
+**Tools (4-6):**
+1. ExtractBriefTool - Parses user input into structured JSON
+2. ValidateRequirementsTool - Checks for missing/incomplete info
+3. ClarifyQuestionTool - Generates clarifying questions
+4. DefineCriteriaTool - Establishes success metrics
+5. AssetInventoryTool - Catalogs provided assets
+
+**Output Format:**
+```json
+{
+  "objective": "Clear statement of what needs to be created",
+  "content_type": "article|social_post|video_script|email|etc",
+  "target_audience": "Description",
+  "tone": "professional|casual|technical|etc",
+  "constraints": ["word_count", "format", "platforms"],
+  "assets_provided": ["urls", "files", "references"],
+  "missing_info": ["what still needs clarification"],
+  "success_definition": "How to measure success",
+  "brand_guidelines": {"voice": "", "style": ""}
+}
+```
+
+---
+
+### 3. Strategy Agent (The Mastermind)
+**Role:** Plans execution workflow
+**Responsibilities:**
+- Convert brief into step-by-step operational plan
+- Break down work into agent-specific tasks
+- Define deliverables and quality standards
+- Identify risks and mitigation strategies
+- Create timeline logic
+
+**Tools (4-6):**
+1. WorkBreakdownTool - Creates task breakdown structure
+2. RiskAnalysisTool - Identifies potential issues
+3. ResourceAllocationTool - Assigns agents to tasks
+4. TimelineGeneratorTool - Creates execution timeline
+5. QualityStandardsTool - Defines acceptance criteria
+
+**Output Format:**
+```json
+{
+  "workflow_plan": {
+    "phase_1": {"agent": "creator", "task": "...", "deliverable": "..."},
+    "phase_2": {"agent": "coding", "task": "...", "deliverable": "..."}
+  },
+  "dependencies": ["task_1 before task_2"],
+  "quality_standards": {"criteria": "..."},
+  "risks": [{"risk": "...", "mitigation": "..."}],
+  "estimated_time": "X minutes"
+}
+```
+
+---
+
+### 4. Creator Agent (The Artist)
+**Role:** Execute creative content generation
+**Responsibilities:**
+- Write copy, scripts, articles, posts
+- Generate creative concepts and ideas
+- Produce hooks, headlines, CTAs
+- Create multiple variations when needed
+- Follow brand voice and style
+
+**Tools (4-6):**
+1. ContentGeneratorTool - Generates written content
+2. HookGeneratorTool - Creates attention-grabbing hooks
+3. HeadlineGeneratorTool - Produces compelling headlines
+4. VariationGeneratorTool - Creates multiple versions
+5. BrandVoiceTool - Applies brand voice guidelines
+6. SEOOptimizerTool - Optimizes for search engines
+
+**Output Format:**
+- Raw creative content (text, scripts, copy)
+- Multiple variations if requested
+- Metadata (word count, keywords, tone analysis)
+
+---
+
+### 5. Coding Agent (The Engineer)
+**Role:** Handle technical and automation tasks
+**Responsibilities:**
+- Build JSON schemas and data structures
+- Write Python scripts for automation
+- Process and transform data
+- Validate formatting (HTML/CSS/JSON)
+- Integrate with APIs and tools
+- Debug technical issues
+
+**Tools (4-6):**
+1. SchemaGeneratorTool - Creates JSON schemas
+2. DataTransformTool - Converts data formats
+3. APIIntegrationTool - Connects to external APIs
+4. ValidationTool - Validates code and data structures
+5. AutomationScriptTool - Generates automation scripts
+6. DebugTool - Troubleshoots technical issues
+
+**Output Format:**
+- Valid code (Python, JSON, HTML, CSS)
+- API responses and integrations
+- Automation scripts ready to execute
+- Technical documentation
+
+---
+
+### 6. Technical Agent (The Formatter)
+**Role:** Template application and formatting
+**Responsibilities:**
+- Inject content into templates
+- Format for specific platforms (PDF, Slides, Docs)
+- Ensure layout consistency
+- Apply brand guidelines to formatting
+- Structure content for delivery systems
+
+**Tools (4-6):**
+1. TemplateInjectionTool - Fills templates with content
+2. PDFGeneratorTool - Creates formatted PDFs
+3. SlideGeneratorTool - Builds presentation slides
+4. DocFormatterTool - Formats documents
+5. BrandStyleTool - Applies brand styling
+6. LayoutValidatorTool - Checks layout consistency
+
+**Output Format:**
+- Formatted documents (PDF, DOCX, PPTX)
+- Platform-specific files
+- Styled HTML/CSS
+- Brand-compliant layouts
+
+---
+
+### 7. Reviewer Agent (The Auditor)
+**Role:** Quality enforcement and improvement
+**Responsibilities:**
+- Detect errors and inconsistencies
+- Validate against quality standards
+- Check brand guideline compliance
+- Flag weak logic or contradictions
+- Provide improvement suggestions
+- Enforce tone and style guidelines
+- Run at least 1 iteration on all content
+
+**Tools (4-6):**
+1. ErrorDetectionTool - Finds mistakes and inconsistencies
+2. BrandComplianceTool - Validates brand guidelines
+3. QualityScoreTool - Rates content quality
+4. ImprovementSuggestionTool - Generates enhancement ideas
+5. ToneAnalyzerTool - Checks tone consistency
+6. FactCheckerTool - Validates factual accuracy
+
+**Output Format:**
+```json
+{
+  "quality_score": 8.5,
+  "errors_found": [{"type": "grammar", "location": "...", "fix": "..."}],
+  "improvements": ["suggestion 1", "suggestion 2"],
+  "brand_compliance": {"passed": true, "issues": []},
+  "tone_analysis": {"current": "professional", "target": "professional", "match": true},
+  "approval_status": "approved|needs_revision"
+}
+```
+
+---
+
+### 8. Delivery Agent (The Finisher)
+**Role:** Final packaging and export
+**Responsibilities:**
+- Assemble final deliverables
+- Package all assets
+- Generate delivery summaries
+- Export to final formats
+- Create shareable URLs
+- Trigger webhooks if configured
+
+**Tools (4-6):**
+1. PackagingTool - Assembles final deliverables
+2. ExportTool - Exports to final formats
+3. URLGeneratorTool - Creates shareable links
+4. SummaryGeneratorTool - Creates delivery report
+5. WebhookTriggerTool - Sends notifications
+6. DeliveryValidatorTool - Final checks before delivery
+
+**Output Format:**
+```json
+{
+  "deliverables": {
+    "final_document": "url_or_path",
+    "assets": ["url1", "url2"],
+    "formats": ["pdf", "docx", "html"]
+  },
+  "summary": {
+    "content_type": "...",
+    "word_count": 1500,
+    "quality_score": 9.0,
+    "completion_time": "12 minutes"
+  },
+  "share_links": ["url1", "url2"]
+}
+```
+
+---
+
+## Communication Flow Patterns
+
+### 4-Phase Workflow (Inspired by Agencii.ai)
+
+**Phase 1: Understanding**
+- User → Orchestrator → Intake Agent
+- Intake Agent → Strategy Agent
+- Output: Structured brief + execution plan
+
+**Phase 2: Execution**
+- Strategy Agent delegates to:
+  - Creator Agent (content generation)
+  - Coding Agent (technical tasks)
+  - Technical Agent (formatting)
+- Agents work in parallel or sequence as needed
+
+**Phase 3: Evaluation**
+- All outputs → Reviewer Agent
+- Reviewer validates and suggests improvements
+- Failed checks → back to relevant agent
+
+**Phase 4: Delivery**
+- Approved content → Delivery Agent
+- Delivery Agent packages and exports
+- Final output → User via Orchestrator
+
+### Communication Flow Definition
+
+```python
+communication_flows = [
+    # Orchestrator as central hub
+    (orchestrator, intake_agent),
+    (orchestrator, strategy_agent),
+    (orchestrator, creator_agent),
+    (orchestrator, coding_agent),
+    (orchestrator, technical_agent),
+    (orchestrator, reviewer_agent),
+    (orchestrator, delivery_agent),
+    
+    # Sequential workflow
+    (intake_agent, strategy_agent),
+    (strategy_agent, creator_agent),
+    (strategy_agent, coding_agent),
+    (strategy_agent, technical_agent),
+    
+    # Quality loops
+    (creator_agent, reviewer_agent),
+    (coding_agent, reviewer_agent),
+    (technical_agent, reviewer_agent),
+    (reviewer_agent, creator_agent),  # Revision loop
+    (reviewer_agent, coding_agent),   # Revision loop
+    (reviewer_agent, technical_agent),# Revision loop
+    
+    # Final delivery
+    (reviewer_agent, delivery_agent),
+]
+```
+
+---
+
+## Shared Instructions
+
+The `shared_instructions.md` should include:
+
+**Background:**
+- Business description
+- Target audience and ICP
+- Brand voice and tone guidelines
+- Quality standards
+
+**Environment:**
+- API keys required
+- Tool configurations
+- File storage locations
+
+**Quality Standards:**
+- Minimum quality score thresholds
+- Brand compliance requirements
+- Output format specifications
+
+---
+
+## Technical Requirements
+
+**Dependencies:**
+- agency-swarm >= 1.0.0
+- openai
+- python-dotenv
+- pydantic
+- Any additional libraries for tools
+
+**Environment Variables:**
+```
+OPENAI_API_KEY=your_key_here
+# Add tool-specific keys as needed
+```
+
+**Testing Requirements:**
+- Each tool must be tested individually
+- Agency must pass end-to-end workflow test
+- Quality checks must validate all outputs
+- Error handling must be robust
+
+---
+
+## Success Criteria
+
+**System Performance:**
+- All 7 agents operational
+- Tools tested and functional
+- End-to-end workflow completes successfully
+- Quality standards enforced
+
+**Output Quality:**
+- Content meets brand guidelines
+- No errors or inconsistencies
+- Deliverables properly formatted
+- Quality score >= 8.0/10
+
+**User Experience:**
+- Clear communication at each phase
+- Progress visibility
+- Easy to provide input and clarifications
+- Fast iteration cycles
+
+---
+
+## Implementation Notes
+
+1. **Start with Orchestrator:** This agent coordinates everything
+2. **Use Agency Context:** Share state between agents (brief, plan, drafts)
+3. **Structured Messages:** Use SendMessageHandoff for clear handoffs
+4. **Error Recovery:** Orchestrator should handle failures gracefully
+5. **Iteration Built-in:** Reviewer agent ensures quality through loops
+6. **Parallel Execution:** Strategy agent can delegate to multiple agents simultaneously
+7. **Tool Modularity:** Keep tools single-purpose and composable
+
+---
+
+## Future Enhancements
+
+- Add memory persistence across sessions
+- Integrate more platform-specific tools (Notion, Slack, etc.)
+- Add analytics and performance tracking
+- Implement A/B testing for content variations
+- Add multimedia support (images, videos)
+- Create custom MCPs for common workflows
